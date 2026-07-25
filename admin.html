@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Review Dashboard | Dr. Anju Bathla Arora</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background-color: var(--bg-soft-beige);
+    }
+  </style>
+</head>
+<body class="admin-body">
+
+  <!-- ==========================================
+       Admin Header
+       ========================================== -->
+  <header class="admin-header">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h1 style="font-family: var(--font-serif); font-size: 1.5rem; color: var(--accent-forest-green); margin: 0;">
+          Editorial Dashboard
+        </h1>
+        <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">
+          Dr. Anju Bathla Arora Website
+        </p>
+      </div>
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <button class="btn btn-primary" id="btn-new-article" style="padding: 0.6rem 1.5rem; font-size: 0.8rem; border-radius: 4px;">
+          New Article
+        </button>
+        <a href="index.html" class="btn btn-secondary" style="padding: 0.6rem 1.5rem; font-size: 0.8rem; border-radius: 4px;">
+          Return to Library
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       Dashboard Main Content
+       ========================================== -->
+  <main class="container" style="padding-bottom: 80px;">
+    
+    <!-- Statistics Cards -->
+    <section class="admin-stats">
+      <div class="admin-stat-card">
+        <span class="admin-stat-lbl">Total Database Articles</span>
+        <span class="admin-stat-val" id="stat-total">0</span>
+      </div>
+      <div class="admin-stat-card" style="border-left: 2px solid var(--accent-soft-gold);">
+        <span class="admin-stat-lbl">Pending Submissions</span>
+        <span class="admin-stat-val" id="stat-pending" style="color: #B27B00;">0</span>
+      </div>
+      <div class="admin-stat-card">
+        <span class="admin-stat-lbl">Published Online</span>
+        <span class="admin-stat-val" id="stat-published" style="color: var(--accent-forest-green);">0</span>
+      </div>
+    </section>
+
+    <!-- Tab View Controls -->
+    <nav class="admin-tabs">
+      <button class="admin-tab active" id="tab-review">Submitted for Review</button>
+      <button class="admin-tab" id="tab-published">Published Articles</button>
+    </nav>
+
+    <!-- Table List Wrapper -->
+    <section class="admin-table-container" id="admin-table-wrapper">
+      <table class="admin-table">
+        <thead id="admin-table-head">
+          <tr>
+            <th style="width: 35%;">Article Title</th>
+            <th style="width: 20%;">Category</th>
+            <th style="width: 15%;">Status</th>
+            <th style="width: 15%;">Date</th>
+            <th style="width: 15%; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-table-body">
+          <!-- Populated dynamically by admin.js -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Empty State -->
+    <div class="admin-empty-state" id="admin-empty-state" style="display: none;">
+      <div style="font-size: 3rem; color: var(--accent-soft-gold); margin-bottom: 1rem;">🗎</div>
+      <p style="font-size: 1.1rem; font-family: var(--font-serif); margin-bottom: 0.5rem;">No articles found</p>
+      <span style="font-size: 0.875rem; color: var(--text-muted);">Manage your library by writing or importing new articles.</span>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       Review Modal (Article Detail & Actions)
+       ========================================== -->
+  <div class="modal-overlay" id="review-modal">
+    <div class="modal-card" style="max-width: 800px; width: 90%;">
+      <button class="modal-close" id="review-modal-close">×</button>
+      <h3 class="modal-title" id="review-modal-title" style="margin-bottom: 0.5rem; font-size: 2rem;">Article Review</h3>
+      <p id="review-modal-meta" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-soft-gold); margin-bottom: 2.5rem; font-weight: 500;">
+        Author details...
+      </p>
+      
+      <!-- Article Text Content -->
+      <div id="review-modal-body" style="border-top: 1px solid var(--border-light); padding-top: 2rem; max-height: 50vh; overflow-y: auto;">
+        <!-- Body text content filled dynamically -->
+      </div>
+      
+      <!-- Action Buttons in Modal -->
+      <div id="review-modal-footer" style="border-top: 1px solid var(--border-light); padding-top: 2rem; margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1.5rem;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       Editor Modal (Create & Edit Article)
+       ========================================== -->
+  <div class="modal-overlay" id="editor-modal">
+    <div class="modal-card" style="max-width: 800px; width: 90%;">
+      <button class="modal-close" id="editor-modal-close">×</button>
+      <h3 class="modal-title" id="editor-modal-title" style="margin-bottom: 1.5rem; font-size: 2rem;">New Article</h3>
+      
+      <form id="article-editor-form">
+        <input type="hidden" id="editor-article-id">
+        
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="editor-title" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Title</label>
+          <input type="text" id="editor-title" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="Enter a compelling title" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="editor-category" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Category</label>
+            <select id="editor-category" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;" required>
+              <option value="Emotions">Emotions</option>
+              <option value="Equity">Equity</option>
+              <option value="Exploration">Exploration</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editor-date" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Publish Date</label>
+            <input type="date" id="editor-date" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editor-readtime" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Read Time</label>
+            <input type="text" id="editor-readtime" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="e.g. 5 min read">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Featured Image</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+            <div>
+              <label class="form-label" for="editor-image-url" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Image URL</label>
+              <input type="text" id="editor-image-url" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="https://example.com/image.jpg">
+            </div>
+            <div>
+              <label class="form-label" for="editor-image-file" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Or Upload File</label>
+              <input type="file" id="editor-image-file" accept="image/*" class="form-control" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;">
+            </div>
+          </div>
+          <div class="featured-image-preview-wrapper" id="image-preview-container">
+            <img src="" id="editor-image-preview" class="featured-image-preview" alt="Preview">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Content</label>
+          
+          <div class="rich-editor-wrapper">
+            <div class="editor-toolbar">
+              <button type="button" class="editor-btn" data-command="bold" title="Bold"><b>B</b></button>
+              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h1" title="Heading 1">H1</button>
+              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h2" title="Heading 2">H2</button>
+              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h3" title="Heading 3">H3</button>
+              <button type="button" class="editor-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+              <button type="button" class="editor-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
+              <button type="button" class="editor-btn" data-command="createLink" title="Insert Link">Link</button>
+              <button type="button" class="editor-btn" data-command="insertImage" title="Insert Image">Image</button>
+            </div>
+            <div class="rich-editor" id="editor-content" contenteditable="true" placeholder="Begin writing your piece here..."></div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" id="editor-cancel-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Cancel</button>
+          <button type="button" class="btn btn-secondary" id="editor-draft-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--text-muted);">Save Draft</button>
+          <button type="submit" class="btn btn-primary" id="editor-publish-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Publish Article</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       Admin Login Overlay (Password Wall)
+       ========================================== -->
+  <div class="admin-login-overlay" id="admin-login-overlay" style="display: none;">
+    <div class="admin-login-card">
+      <h2>Security Verification</h2>
+      <p>Please enter the administrator password to access the editorial dashboard.</p>
+      
+      <form id="admin-login-form">
+        <div class="form-group" style="margin-bottom: 1.5rem; text-align: left;">
+          <label class="form-label" for="admin-password" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Password</label>
+          <input type="password" id="admin-password" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="••••••••" required autofocus>
+        </div>
+        <div id="login-error-msg" style="color: #D32F2F; font-size: 0.85rem; margin-bottom: 1rem; display: none;">Invalid password. Please try again.</div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; border-radius: 4px;">Unlock Dashboard</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
