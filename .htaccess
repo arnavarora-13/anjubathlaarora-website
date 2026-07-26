@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Check if the requested file or directory exists. If so, serve it directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Otherwise, if the requested path with ".html" appended is a valid file, serve it.
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)/?$ $1.html [L]

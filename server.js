@@ -33,20 +33,36 @@ const server = http.createServer((req, res) => {
   const ext = path.extname(resolvedPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(resolvedPath, (err, content) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        res.statusCode = 404;
-        res.end('File Not Found');
+  const serveFile = (pathToSend, mimeType) => {
+    fs.readFile(pathToSend, (err, content) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          res.statusCode = 404;
+          res.end('File Not Found');
+        } else {
+          res.statusCode = 500;
+          res.end(`Server Error: ${err.code}`);
+        }
       } else {
-        res.statusCode = 500;
-        res.end(`Server Error: ${err.code}`);
+        res.writeHead(200, { 'Content-Type': mimeType });
+        res.end(content);
       }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
-    }
-  });
+    });
+  };
+
+  if (ext === '') {
+    const htmlPath = resolvedPath + '.html';
+    fs.readFile(htmlPath, (err, content) => {
+      if (!err) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+      } else {
+        serveFile(resolvedPath, contentType);
+      }
+    });
+  } else {
+    serveFile(resolvedPath, contentType);
+  }
 });
 
 server.listen(PORT, () => {

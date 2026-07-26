@@ -1,0 +1,17 @@
+{
+  "name": "anjubathlaarora-website",
+  "version": "1.0.0",
+  "description": "Dr. Anju Bathla Arora website with Upgraded Articles system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "portfolio",
+    "website",
+    "blog"
+  ],
+  "author": "",
+  "license": "ISC"
+}
