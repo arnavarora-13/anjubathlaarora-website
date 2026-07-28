@@ -1732,3 +1732,53 @@ textarea.form-control:focus {
   100% { transform: translateY(0px); }
 }
 
+/* ==========================================
+   Footer Social Media Section
+   ========================================== */
+.footer-social {
+  text-align: center;
+}
+
+.footer-social h4 {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-forest-green);
+  margin-bottom: 0.75rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--bg-soft-beige);
+  color: var(--accent-forest-green);
+  border: 1px solid var(--border-light);
+  transition: var(--transition-fast);
+}
+
+.social-icon:hover {
+  background-color: var(--accent-forest-green);
+  color: var(--bg-warm-white);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(15, 56, 43, 0.15);
+}
+
+@media (max-width: 768px) {
+  .footer-social {
+    margin: 1.5rem 0;
+  }
+}
+
+
