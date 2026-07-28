@@ -100,7 +100,7 @@
   <section class="about-section section-padding" id="about">
     <div class="container about-grid">
       <div class="about-image-wrapper reveal">
-        <img src="assets/images/photo.jpeg" alt="Dr. Anju Bathla Arora Photograph">
+        <img src="assets/images/photo.jpeg" alt="Dr. Anju Bathla Arora Photograph" loading="lazy">
       </div>
 
       <div class="about-content reveal">
@@ -165,7 +165,7 @@
         <!-- Book 1 Card -->
         <div class="book-card reveal">
           <div class="book-card-image-wrapper">
-            <img src="assets/images/book3.jpeg" alt="Agilent – The Fast and Focused" class="book-card-image">
+            <img src="assets/images/book3.jpeg" alt="Agilent – The Fast and Focused" class="book-card-image" loading="lazy">
           </div>
           <div class="book-card-content">
             <h3 class="book-card-title">Agilent – The Fast and Focused</h3>
@@ -183,7 +183,7 @@
         <!-- Book 2 Card -->
         <div class="book-card reveal">
           <div class="book-card-image-wrapper">
-            <img src="assets/images/book2.jpeg" alt="The Exhilarating Magic of Stock Markets" class="book-card-image">
+            <img src="assets/images/book2.jpeg" alt="The Exhilarating Magic of Stock Markets" class="book-card-image" loading="lazy">
           </div>
           <div class="book-card-content">
             <h3 class="book-card-title">The Exhilarating Magic of Stock Markets</h3>
@@ -201,7 +201,7 @@
         <!-- Book 3 Card -->
         <div class="book-card reveal">
           <div class="book-card-image-wrapper">
-            <img src="assets/images/book1.jpeg" alt="Rekindled Life" class="book-card-image">
+            <img src="assets/images/book1.jpeg" alt="Rekindled Life" class="book-card-image" loading="lazy">
           </div>
           <div class="book-card-content">
             <h3 class="book-card-title">Rekindled Life</h3>
@@ -299,7 +299,7 @@
 
           <div class="form-group" style="margin-bottom: 2rem;">
             <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Featured Image (Optional)</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+            <div class="image-input-grid">
               <div>
                 <label class="form-label" for="visitor-image-url" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Image URL</label>
                 <input type="text" id="visitor-image-url" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="https://example.com/image.jpg">
@@ -314,7 +314,7 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+          <div class="modal-actions-stack">
             <button type="button" class="btn btn-secondary" id="submit-cancel-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Cancel</button>
             <button type="submit" class="btn btn-primary" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Submit for Review</button>
           </div>

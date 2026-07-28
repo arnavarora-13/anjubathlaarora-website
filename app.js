@@ -170,7 +170,7 @@ function renderArticles() {
     
     card.innerHTML = `
       <div class="article-card-image-wrapper">
-        <img src="${article.image || 'assets/images/photo.jpeg'}" alt="${article.title}" class="article-card-image">
+        <img src="${article.image || 'assets/images/photo.jpeg'}" alt="${article.title}" class="article-card-image" loading="lazy">
       </div>
       <div class="article-meta">
         <span class="article-category">${article.category || 'Research'}</span>
@@ -457,6 +457,14 @@ function setupMobileMenu() {
 
     document.addEventListener('click', () => {
       menu.classList.remove('open');
+    });
+
+    // Close mobile menu when nav links are clicked
+    const links = menu.querySelectorAll('.nav-link');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        menu.classList.remove('open');
+      });
     });
   }
 }

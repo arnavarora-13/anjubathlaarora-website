@@ -17,7 +17,7 @@
        Admin Header
        ========================================== -->
   <header class="admin-header">
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="container admin-header-container">
       <div>
         <h1 style="font-family: var(--font-serif); font-size: 1.5rem; color: var(--accent-forest-green); margin: 0;">
           Editorial Dashboard
@@ -26,7 +26,7 @@
           Dr. Anju Bathla Arora Website
         </p>
       </div>
-      <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="admin-header-actions">
         <button class="btn btn-primary" id="btn-new-article" style="padding: 0.6rem 1.5rem; font-size: 0.8rem; border-radius: 4px;">
           New Article
         </button>
@@ -108,7 +108,7 @@
       </div>
       
       <!-- Action Buttons in Modal -->
-      <div id="review-modal-footer" style="border-top: 1px solid var(--border-light); padding-top: 2rem; margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1.5rem;">
+      <div id="review-modal-footer" class="modal-actions-stack" style="border-top: 1px solid var(--border-light); padding-top: 2rem; margin-top: 2rem;">
         <!-- Filled dynamically -->
       </div>
     </div>
@@ -130,7 +130,7 @@
           <input type="text" id="editor-title" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="Enter a compelling title" required>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.25rem;">
+        <div class="editor-form-grid">
           <div class="form-group">
             <label class="form-label" for="editor-category" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Category</label>
             <select id="editor-category" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;" required>
@@ -151,7 +151,7 @@
 
         <div class="form-group" style="margin-bottom: 1.5rem;">
           <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Featured Image</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+          <div class="image-input-grid">
             <div>
               <label class="form-label" for="editor-image-url" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Image URL</label>
               <input type="text" id="editor-image-url" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="https://example.com/image.jpg">
@@ -184,7 +184,7 @@
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+        <div class="editor-form-actions">
           <button type="button" class="btn btn-secondary" id="editor-cancel-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Cancel</button>
           <button type="button" class="btn btn-secondary" id="editor-draft-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--text-muted);">Save Draft</button>
           <button type="submit" class="btn btn-primary" id="editor-publish-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Publish Article</button>
