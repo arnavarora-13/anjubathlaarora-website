@@ -140,8 +140,8 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="editor-date" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Publish Date</label>
-            <input type="date" id="editor-date" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" required>
+            <label class="form-label" for="editor-date" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Publish Date &amp; Time</label>
+            <input type="datetime-local" id="editor-date" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="editor-readtime" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Read Time</label>
@@ -187,6 +187,7 @@
         <div class="editor-form-actions">
           <button type="button" class="btn btn-secondary" id="editor-cancel-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Cancel</button>
           <button type="button" class="btn btn-secondary" id="editor-draft-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--text-muted);">Save Draft</button>
+          <button type="button" class="btn btn-secondary" id="editor-schedule-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--accent-soft-gold);">Schedule Post</button>
           <button type="submit" class="btn btn-primary" id="editor-publish-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Publish Article</button>
         </div>
       </form>

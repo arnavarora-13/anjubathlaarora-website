@@ -1781,4 +1781,13 @@ textarea.form-control:focus {
   }
 }
 
+/* ==========================================
+   Scheduled Badges
+   ========================================== */
+.badge-status.scheduled, .badge-status.scheduled-badge {
+  background-color: #E8F0FE;
+  color: #1A73E8;
+}
+
+
 

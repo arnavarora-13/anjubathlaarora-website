@@ -22,8 +22,37 @@ function checkAuth() {
   }
 }
 
+// Automatic scheduler for client-side publishing
+function checkAndPublishScheduled() {
+  const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
+  let updated = false;
+  const now = Date.now();
+  
+  const newArticles = articles.map(art => {
+    if (art.status === 'scheduled') {
+      const scheduleTime = new Date(art.scheduledAt).getTime();
+      if (scheduleTime <= now) {
+        art.status = 'published';
+        art.timestamp = scheduleTime; // Use the scheduled time as the publish timestamp
+        
+        // Format the date string to match "July 15, 2026"
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const d = new Date(scheduleTime);
+        art.date = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        updated = true;
+      }
+    }
+    return art;
+  });
+  
+  if (updated) {
+    localStorage.setItem('arora_articles', JSON.stringify(newArticles));
+  }
+}
+
 // Fetch database
 function getArticles() {
+  checkAndPublishScheduled();
   return JSON.parse(localStorage.getItem('arora_articles')) || [];
 }
 
@@ -77,7 +106,7 @@ function renderAdminTable() {
         <th style="width: 15%; text-align: center;">Actions</th>
       </tr>
     `;
-    filtered = db.filter(art => art.status === 'published' || art.status === 'draft');
+    filtered = db.filter(art => art.status === 'published' || art.status === 'draft' || art.status === 'scheduled');
   }
   
   // Sort user submissions by newest first, seed articles last
@@ -136,14 +165,20 @@ function renderAdminTable() {
         </td>
       `;
     } else {
-      const isPublished = art.status === 'published';
-      const displayStatus = isPublished ? 'published' : 'draft';
-      const statusClass = isPublished ? 'approved' : 'pending';
+      const displayStatus = art.status;
+      let statusClass = 'pending';
+      if (art.status === 'published') {
+        statusClass = 'approved';
+      } else if (art.status === 'scheduled') {
+        statusClass = 'scheduled-badge';
+      }
       
+      const isPublished = art.status === 'published';
+      const canPublish = art.status === 'draft' || art.status === 'scheduled';
       actionButtons = `
-        ${isPublished 
-          ? `<button class="btn btn-sm btn-secondary btn-action btn-action-unpub" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Unpublish</button>`
-          : `<button class="btn btn-sm btn-approve btn-action btn-action-pub" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem;">Publish</button>`
+        ${canPublish 
+          ? `<button class="btn btn-sm btn-approve btn-action btn-action-pub" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem;">Publish</button>`
+          : `<button class="btn btn-sm btn-secondary btn-action btn-action-unpub" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Unpublish</button>`
         }
         <button class="btn btn-sm btn-secondary btn-action btn-action-edit" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Edit</button>
         <button class="btn btn-sm btn-delete btn-action btn-action-del" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem;">Delete</button>
@@ -334,14 +369,14 @@ function openEditorModal(id = null) {
   // Reset inputs
   idInput.value = '';
   titleInput.value = '';
-  categorySelect.value = 'Finance';
+  categorySelect.value = 'Emotions';
   
-  // Set date default to today (YYYY-MM-DD local format)
+  // Set date default to today at 7:00 AM (YYYY-MM-DDTHH:MM format)
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const dd = String(today.getDate()).padStart(2, '0');
-  dateInput.value = `${yyyy}-${mm}-${dd}`;
+  dateInput.value = `${yyyy}-${mm}-${dd}T07:00`;
   
   readTimeInput.value = '';
   imageUrlInput.value = '';
@@ -358,16 +393,20 @@ function openEditorModal(id = null) {
       modalTitle.textContent = 'Edit Article';
       idInput.value = art.id;
       titleInput.value = art.title || '';
-      categorySelect.value = art.category || 'Finance';
+      categorySelect.value = art.category || 'Emotions';
       
-      // Parse dates like "July 15, 2026" or YYYY-MM-DD
-      let dateVal = art.date;
-      if (dateVal && isNaN(Date.parse(dateVal)) === false) {
+      // Parse dates (supporting ISO scheduledAt, raw date strings, or timestamps)
+      let dateVal = art.scheduledAt || art.date || art.timestamp;
+      if (dateVal) {
         const dObj = new Date(dateVal);
-        const y = dObj.getFullYear();
-        const m = String(dObj.getMonth() + 1).padStart(2, '0');
-        const d = String(dObj.getDate()).padStart(2, '0');
-        dateInput.value = `${y}-${m}-${d}`;
+        if (!isNaN(dObj.getTime())) {
+          const y = dObj.getFullYear();
+          const m = String(dObj.getMonth() + 1).padStart(2, '0');
+          const d = String(dObj.getDate()).padStart(2, '0');
+          const hh = String(dObj.getHours()).padStart(2, '0');
+          const min = String(dObj.getMinutes()).padStart(2, '0');
+          dateInput.value = `${y}-${m}-${d}T${hh}:${min}`;
+        }
       }
       
       readTimeInput.value = art.readTime || '';
@@ -424,17 +463,15 @@ function saveEditor(status = 'published') {
     return;
   }
 
-  // Format Date (Convert YYYY-MM-DD to "Month DD, YYYY")
+  // Format Date (Convert datetime-local ISO to "Month DD, YYYY") and extract schedule timestamp
   let formattedDate = 'Recent';
+  let scheduledAt = null;
   if (rawDate) {
-    const dParts = rawDate.split('-');
-    if (dParts.length === 3) {
-      // Avoid time zone shifts by using direct values
+    const dObj = new Date(rawDate);
+    if (!isNaN(dObj.getTime())) {
+      scheduledAt = dObj.toISOString();
       const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      const year = dParts[0];
-      const month = months[parseInt(dParts[1], 10) - 1];
-      const day = parseInt(dParts[2], 10);
-      formattedDate = `${month} ${day}, ${year}`;
+      formattedDate = `${months[dObj.getMonth()]} ${dObj.getDate()}, ${dObj.getFullYear()}`;
     }
   }
 
@@ -458,6 +495,14 @@ function saveEditor(status = 'published') {
   let db = getArticles();
   let targetStatus = status;
 
+  let timestampVal = Date.now();
+  if (rawDate) {
+    const dObj = new Date(rawDate);
+    if (!isNaN(dObj.getTime())) {
+      timestampVal = dObj.getTime();
+    }
+  }
+
   if (idInput) {
     // Update existing
     db = db.map(art => {
@@ -475,13 +520,14 @@ function saveEditor(status = 'published') {
           content: contentHtml,
           image: finalImage,
           status: targetStatus,
-          timestamp: Date.now()
+          scheduledAt: targetStatus === 'scheduled' ? scheduledAt : null,
+          timestamp: targetStatus === 'published' ? Date.now() : timestampVal
         };
       }
       return art;
     });
   } else {
-    // Add new (by admin) - published immediately or saved as draft
+    // Add new (by admin) - published immediately, saved as draft, or scheduled
     const newArt = {
       id: 'user-' + Date.now(),
       title: titleVal,
@@ -491,8 +537,9 @@ function saveEditor(status = 'published') {
       date: formattedDate,
       readTime: readTimeText,
       image: finalImage,
-      status: status,
-      timestamp: Date.now()
+      status: targetStatus,
+      scheduledAt: targetStatus === 'scheduled' ? scheduledAt : null,
+      timestamp: targetStatus === 'published' ? Date.now() : timestampVal
     };
     db.push(newArt);
   }
@@ -747,6 +794,15 @@ document.addEventListener('DOMContentLoaded', () => {
     draftBtn.addEventListener('click', (e) => {
       e.preventDefault();
       saveEditor('draft');
+    });
+  }
+
+  // Handle editor schedule saving
+  const scheduleBtn = document.getElementById('editor-schedule-btn');
+  if (scheduleBtn) {
+    scheduleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveEditor('scheduled');
     });
   }
   

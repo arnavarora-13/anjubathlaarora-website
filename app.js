@@ -124,10 +124,39 @@ function initializeDatabase() {
   }
 }
 
+// Automatic scheduler for client-side publishing
+function checkAndPublishScheduled() {
+  const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
+  let updated = false;
+  const now = Date.now();
+  
+  const newArticles = articles.map(art => {
+    if (art.status === 'scheduled') {
+      const scheduleTime = new Date(art.scheduledAt).getTime();
+      if (scheduleTime <= now) {
+        art.status = 'published';
+        art.timestamp = scheduleTime; // Use the scheduled time as the publish timestamp
+        
+        // Format the date string to match "July 15, 2026"
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const d = new Date(scheduleTime);
+        art.date = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        updated = true;
+      }
+    }
+    return art;
+  });
+  
+  if (updated) {
+    localStorage.setItem('arora_articles', JSON.stringify(newArticles));
+  }
+}
+
 let activeFilterCategory = null;
 
 // Get published articles from localStorage
 function getPublishedArticles() {
+  checkAndPublishScheduled();
   const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
   return articles.filter(art => art.status === 'published');
 }
