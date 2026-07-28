@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Review Dashboard | Dr. Anju Bathla Arora</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js CDN for interactive analytics charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background-color: var(--bg-soft-beige);
@@ -60,12 +62,67 @@
 
     <!-- Tab View Controls -->
     <nav class="admin-tabs">
-      <button class="admin-tab active" id="tab-review">Submitted for Review</button>
+      <button class="admin-tab active" id="tab-dashboard">Dashboard</button>
+      <button class="admin-tab" id="tab-review">Submitted Articles</button>
       <button class="admin-tab" id="tab-published">Published Articles</button>
+      <button class="admin-tab" id="tab-create">Create Article</button>
+      <button class="admin-tab" id="tab-scheduled">Scheduled Articles</button>
+      <button class="admin-tab" id="tab-analytics">Analytics</button>
+      <button class="admin-tab" id="tab-settings">Settings</button>
     </nav>
 
+    <!-- Dashboard Content Panel -->
+    <section class="admin-panel" id="admin-dashboard-panel" style="margin-top: 30px;">
+      <div style="background: var(--surface-white); padding: 2.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+        <h2 style="font-family: var(--font-serif); font-size: 2rem; color: var(--accent-forest-green); margin-bottom: 0.5rem;">Welcome, Dr. Arora</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Manage your website content, review visitor article submissions, schedule publications, and track site performance from your control center.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 2rem;">
+          <div style="cursor: pointer;" id="dash-card-pending">
+            <h4 style="font-family: var(--font-sans); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Submissions Pending</h4>
+            <span style="font-family: var(--font-serif); font-size: 1.75rem; color: #B27B00;" id="dash-pending">0</span>
+            <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Needs editor review</span>
+          </div>
+          <div style="cursor: pointer;" id="dash-card-published">
+            <h4 style="font-family: var(--font-sans); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Articles Published</h4>
+            <span style="font-family: var(--font-serif); font-size: 1.75rem; color: var(--accent-forest-green);" id="dash-published">0</span>
+            <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Live on public library</span>
+          </div>
+          <div style="cursor: pointer;" id="dash-card-scheduled">
+            <h4 style="font-family: var(--font-sans); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Scheduled Posts</h4>
+            <span style="font-family: var(--font-serif); font-size: 1.75rem; color: #1A73E8;" id="dash-scheduled">0</span>
+            <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Queued for release</span>
+          </div>
+          <div style="cursor: pointer;" id="dash-card-analytics">
+            <h4 style="font-family: var(--font-sans); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Active Visitors</h4>
+            <span style="font-family: var(--font-serif); font-size: 1.75rem; color: var(--accent-soft-gold);" id="dash-active">0</span>
+            <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">On site right now</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <div style="background: var(--surface-white); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <h3 style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green); margin-bottom: 1rem;">Quick Actions</h3>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn btn-primary" id="dash-act-create" style="text-align: center; border-radius: 4px; padding: 0.75rem 1rem;">Create New Article</button>
+            <button class="btn btn-secondary" id="dash-act-analytics" style="text-align: center; border-radius: 4px; padding: 0.75rem 1rem; background: white; border: 1px solid var(--border-color);">View Site Analytics</button>
+            <button class="btn btn-secondary" id="dash-act-submissions" style="text-align: center; border-radius: 4px; padding: 0.75rem 1rem; background: white; border: 1px solid var(--border-color);">Review Submissions</button>
+          </div>
+        </div>
+
+        <div style="background: var(--surface-white); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <h3 style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green); margin-bottom: 1rem;">Latest Activity</h3>
+          <div id="dash-activity-list" style="font-size: 0.9rem; color: var(--text-charcoal); display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Table List Wrapper -->
-    <section class="admin-table-container" id="admin-table-wrapper">
+    <section class="admin-table-container" id="admin-table-wrapper" style="display: none;">
       <table class="admin-table">
         <thead id="admin-table-head">
           <tr>
@@ -88,6 +145,143 @@
       <p style="font-size: 1.1rem; font-family: var(--font-serif); margin-bottom: 0.5rem;">No articles found</p>
       <span style="font-size: 0.875rem; color: var(--text-muted);">Manage your library by writing or importing new articles.</span>
     </div>
+
+    <!-- Analytics Content Panel -->
+    <section class="admin-panel" id="admin-analytics-panel" style="display: none; margin-top: 30px;">
+      <!-- Live Visitor Counter -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="admin-stat-card" style="border-left: 2px solid #1A73E8; margin-bottom: 0;">
+          <span class="admin-stat-lbl">Current Active Visitors</span>
+          <span class="admin-stat-val" id="live-active-visitors" style="color: #1A73E8;">1</span>
+        </div>
+        <div class="admin-stat-card" style="border-left: 2px solid var(--accent-soft-gold); margin-bottom: 0;">
+          <span class="admin-stat-lbl">Total Visitors Since Website Launch</span>
+          <span class="admin-stat-val" id="live-total-visitors">1</span>
+        </div>
+      </div>
+
+      <!-- Visitor Statistics Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Unique Visitors</span>
+          <span class="admin-stat-val" id="stats-unique">0</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Returning Visitors</span>
+          <span class="admin-stat-val" id="stats-returning">0</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Total Page Views</span>
+          <span class="admin-stat-val" id="stats-pageviews">0</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Avg. Time on Website</span>
+          <span class="admin-stat-val" id="stats-avgtime">0s</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Today's Visitors</span>
+          <span class="admin-stat-val" id="stats-today">0</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Visitors This Week</span>
+          <span class="admin-stat-val" id="stats-week">0</span>
+        </div>
+        <div class="admin-stat-card" style="margin-bottom: 0;">
+          <span class="admin-stat-lbl">Visitors This Month</span>
+          <span class="admin-stat-val" id="stats-month">0</span>
+        </div>
+      </div>
+
+      <!-- Top Performing Content Info -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+        <div class="admin-stat-card" style="padding: 1.5rem 2rem; margin-bottom: 0;">
+          <h4 style="font-family: var(--font-sans); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight:600;">Most Visited Page</h4>
+          <span style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green);" id="stats-most-visited-page">Home Library</span>
+        </div>
+        <div class="admin-stat-card" style="padding: 1.5rem 2rem; margin-bottom: 0;">
+          <h4 style="font-family: var(--font-sans); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight:600;">Most Read Article</h4>
+          <span style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green);" id="stats-most-read-article">None</span>
+        </div>
+      </div>
+
+      <!-- Charts Section Grid -->
+      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-bottom: 3rem;">
+        <div class="admin-stat-card" style="padding: 2rem; height: 350px; margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; color: var(--accent-forest-green); font-weight: 600; margin: 0;">Visitor Trends</h4>
+            <div style="display: flex; gap: 0.25rem;">
+              <button class="btn btn-sm" id="btn-trend-daily" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--accent-forest-green); color: white; cursor: pointer;">Daily</button>
+              <button class="btn btn-sm" id="btn-trend-weekly" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: white; color: var(--text-charcoal); cursor: pointer;">Weekly</button>
+              <button class="btn btn-sm" id="btn-trend-monthly" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: white; color: var(--text-charcoal); cursor: pointer;">Monthly</button>
+            </div>
+          </div>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chart-visitor-trends"></canvas>
+          </div>
+        </div>
+        <div class="admin-stat-card" style="padding: 2rem; height: 350px; margin-bottom: 0;">
+          <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 1rem; color: var(--accent-forest-green); font-weight: 600;">Traffic by Category</h4>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chart-category-traffic"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+        <div class="admin-stat-card" style="padding: 2rem; height: 320px; margin-bottom: 0;">
+          <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 1rem; color: var(--accent-forest-green); font-weight: 600;">Most Popular Articles</h4>
+          <div style="position: relative; height: 230px; width: 100%;">
+            <canvas id="chart-popular-articles"></canvas>
+          </div>
+        </div>
+        <div class="admin-stat-card" style="padding: 2rem; height: 320px; margin-bottom: 0;">
+          <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 1rem; color: var(--accent-forest-green); font-weight: 600;">Browser Popularity</h4>
+          <div style="position: relative; height: 230px; width: 100%;">
+            <canvas id="chart-browser-breakdown"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Article Performance Table -->
+      <h3 style="font-family: var(--font-serif); font-size: 1.5rem; color: var(--accent-forest-green); margin-bottom: 1.5rem;">Article Engagement Performance</h3>
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Article Title</th>
+              <th style="width: 15%;">Category</th>
+              <th style="width: 10%; text-align: center;">Views</th>
+              <th style="width: 10%; text-align: center;">Reads</th>
+              <th style="width: 15%; text-align: center;">Avg. Read Time</th>
+              <th style="width: 15%; text-align: center;">Pub. Date</th>
+            </tr>
+          </thead>
+          <tbody id="stats-articles-table-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Settings Content Panel -->
+    <section class="admin-panel" id="admin-settings-panel" style="display: none; margin-top: 30px;">
+      <div class="admin-stat-card" style="padding: 3rem; text-align: center;">
+        <div style="font-size: 3rem; color: var(--accent-soft-gold); margin-bottom: 1rem;">⚙</div>
+        <h3 style="font-family: var(--font-serif); font-size: 1.75rem; color: var(--accent-forest-green); margin-bottom: 1rem;">Dashboard Settings</h3>
+        <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 2rem;">Configure your editorial preferences, security rules, and metadata collection parameters.</p>
+        
+        <div style="max-width: 500px; margin: 0 auto; text-align: left; border-top: 1px solid var(--border-light); padding-top: 2rem;">
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600; color: var(--accent-forest-green);">Administrator Email</label>
+            <input type="email" class="form-control" value="admin@dr-anju-arora.com" readonly style="background-color: var(--bg-soft-beige); padding-left: 0.5rem;">
+          </div>
+          <div class="form-group" style="margin-top: 1.5rem;">
+            <label class="form-label" style="font-weight: 600; color: var(--accent-forest-green);">Security Passcode</label>
+            <input type="text" class="form-control" value="a1b2c3d4e5" readonly style="background-color: var(--bg-soft-beige); padding-left: 0.5rem;">
+          </div>
+        </div>
+      </div>
+    </section>
 
   </main>
 

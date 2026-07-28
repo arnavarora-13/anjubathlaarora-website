@@ -253,6 +253,11 @@ function openArticleModal(id) {
 
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  // Track article view
+  if (typeof recordPageView === 'function') {
+    recordPageView("Article: " + article.title);
+  }
 }
 
 // ==========================================
@@ -288,8 +293,12 @@ function setupModalHandlers() {
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
+        const wasOpen = overlay.classList.contains('open');
         overlay.classList.remove('open');
         document.body.style.overflow = '';
+        if (wasOpen && overlay.id === 'article-view-modal' && typeof recordPageView === 'function') {
+          recordPageView('Home');
+        }
       }
     });
   });
@@ -300,6 +309,9 @@ function setupModalHandlers() {
     closeViewModal.addEventListener('click', () => {
       document.getElementById('article-view-modal').classList.remove('open');
       document.body.style.overflow = '';
+      if (typeof recordPageView === 'function') {
+        recordPageView('Home');
+      }
     });
   }
 }
@@ -510,4 +522,264 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileMenu();
   setupVisitorSubmissionModal();
   setupCategoryFiltering();
+  startTrackingSession();
 });
+
+// ==========================================
+// Visitor Analytics & Heartbeat System
+// ==========================================
+
+function initializeAnalytics() {
+  if (localStorage.getItem('arora_analytics')) return;
+
+  const analytics = { sessions: [] };
+  const now = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+  
+  // Generate unique visitor IDs (say 90 unique visitors)
+  const visitors = [];
+  for (let i = 0; i < 90; i++) {
+    visitors.push('seed-visitor-' + Math.random().toString(36).substring(2, 9));
+  }
+
+  const devices = ['Desktop', 'Mobile', 'Tablet'];
+  const deviceWeights = [0.55, 0.35, 0.10]; // 55% Desktop, 35% Mobile, 10% Tablet
+  const browsers = ['Chrome', 'Safari', 'Firefox', 'Edge'];
+  const browserWeights = [0.60, 0.20, 0.12, 0.08];
+
+  function getRandomWeighted(items, weights) {
+    const r = Math.random();
+    let sum = 0;
+    for (let i = 0; i < items.length; i++) {
+      sum += weights[i];
+      if (r <= sum) return items[i];
+    }
+    return items[items.length - 1];
+  }
+
+  const articleTitles = [
+    "The Psychology of Market Volatility",
+    "Defining Agility in Modern Workspaces",
+    "Rekindling Purpose in Professional Life"
+  ];
+
+  // Generate sessions over the last 30 days (around 200 total sessions)
+  for (let dayOffset = 30; dayOffset >= 0; dayOffset--) {
+    const dayTimestamp = now - (dayOffset * oneDay);
+    const d = new Date(dayTimestamp);
+    const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    
+    // Number of sessions on this day: ranges from 4 to 12
+    const sessionsCount = Math.floor(Math.random() * 8) + 4;
+
+    for (let s = 0; s < sessionsCount; s++) {
+      const visitorId = visitors[Math.floor(Math.random() * visitors.length)];
+      const previousSession = analytics.sessions.find(sess => sess.visitorId === visitorId);
+      const isNew = !previousSession;
+
+      // Determine device & browser (keep consistent per visitor)
+      let device, browser;
+      if (previousSession) {
+        device = previousSession.device;
+        browser = previousSession.browser;
+      } else {
+        device = getRandomWeighted(devices, deviceWeights);
+        browser = getRandomWeighted(browsers, browserWeights);
+      }
+
+      // Generate random hour for session start (between 7 AM and 11 PM)
+      const hour = Math.floor(Math.random() * 16) + 7;
+      const minute = Math.floor(Math.random() * 60);
+      const sessionTime = new Date(d);
+      sessionTime.setHours(hour, minute, 0, 0);
+
+      const session = {
+        id: 'seed-session-' + Math.random().toString(36).substring(2, 9),
+        visitorId: visitorId,
+        isNew: isNew,
+        timestamp: sessionTime.getTime(),
+        dateString: dateString,
+        device: device,
+        browser: browser,
+        duration: 0,
+        pageViews: []
+      };
+
+      // Always starts with Home
+      const homeTime = Math.floor(Math.random() * 45) + 15;
+      session.pageViews.push({
+        page: 'Home',
+        duration: homeTime,
+        startTime: sessionTime.getTime()
+      });
+
+      // Maybe views some articles (50% chance of viewing articles)
+      const pViews = Math.random() < 0.5 ? (Math.random() < 0.3 ? 2 : 1) : 0;
+      let currentTimestamp = sessionTime.getTime() + (homeTime * 1000);
+
+      for (let p = 0; p < pViews; p++) {
+        const articleTitle = articleTitles[Math.floor(Math.random() * articleTitles.length)];
+        const articleDuration = Math.floor(Math.random() * 240) + 5; // 5s to 4 mins
+        const isRead = articleDuration >= 15; // considered "read" if >= 15s
+
+        session.pageViews.push({
+          page: 'Article: ' + articleTitle,
+          duration: articleDuration,
+          startTime: currentTimestamp,
+          isRead: isRead
+        });
+
+        currentTimestamp += (articleDuration * 1000);
+        
+        // Maybe returns to home page
+        if (Math.random() < 0.5) {
+          const homeDuration = Math.floor(Math.random() * 20) + 5;
+          session.pageViews.push({
+            page: 'Home',
+            duration: homeDuration,
+            startTime: currentTimestamp
+          });
+          currentTimestamp += (homeDuration * 1000);
+        }
+      }
+
+      session.duration = session.pageViews.reduce((acc, pv) => acc + pv.duration, 0);
+      analytics.sessions.push(session);
+    }
+  }
+
+  localStorage.setItem('arora_analytics', JSON.stringify(analytics));
+}
+
+function runActiveHeartbeat() {
+  const sessionId = sessionStorage.getItem('arora_session_id');
+  if (!sessionId) return;
+  
+  const activeSessions = JSON.parse(localStorage.getItem('arora_active_sessions')) || {};
+  activeSessions[sessionId] = Date.now();
+  
+  const now = Date.now();
+  for (const id in activeSessions) {
+    if (now - activeSessions[id] > 15000) {
+      delete activeSessions[id];
+    }
+  }
+  localStorage.setItem('arora_active_sessions', JSON.stringify(activeSessions));
+}
+
+function getDeviceType() {
+  const ua = navigator.userAgent;
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+    return "Tablet";
+  }
+  if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
+    return "Mobile";
+  }
+  return "Desktop";
+}
+
+function getBrowserType() {
+  const ua = navigator.userAgent;
+  if (ua.indexOf("Chrome") > -1 && ua.indexOf("Safari") > -1) {
+    if (ua.indexOf("Edg") > -1) return "Edge";
+    return "Chrome";
+  }
+  if (ua.indexOf("Safari") > -1 && ua.indexOf("Chrome") === -1) {
+    return "Safari";
+  }
+  if (ua.indexOf("Firefox") > -1) {
+    return "Firefox";
+  }
+  return "Other";
+}
+
+function recordPageView(pageName) {
+  const analytics = JSON.parse(localStorage.getItem('arora_analytics')) || { sessions: [] };
+  const currentSessionId = sessionStorage.getItem('arora_session_id');
+  if (!currentSessionId) return;
+
+  const session = analytics.sessions.find(s => s.id === currentSessionId);
+  if (session) {
+    if (session.pageViews.length > 0) {
+      const prevPv = session.pageViews[session.pageViews.length - 1];
+      const elapsed = Math.round((Date.now() - prevPv.startTime) / 1000);
+      prevPv.duration = Math.max(1, elapsed);
+      if (prevPv.page.startsWith('Article:') && prevPv.duration >= 15) {
+        prevPv.isRead = true;
+      }
+    }
+    
+    session.pageViews.push({
+      page: pageName,
+      startTime: Date.now(),
+      duration: 0,
+      isRead: false
+    });
+    
+    session.duration = session.pageViews.reduce((acc, pv) => acc + (pv.duration || 0), 0);
+    localStorage.setItem('arora_analytics', JSON.stringify(analytics));
+  }
+}
+
+function updateCurrentPageViewDuration() {
+  const analytics = JSON.parse(localStorage.getItem('arora_analytics'));
+  if (!analytics) return;
+  const currentSessionId = sessionStorage.getItem('arora_session_id');
+  if (!currentSessionId) return;
+
+  const session = analytics.sessions.find(s => s.id === currentSessionId);
+  if (session && session.pageViews.length > 0) {
+    const lastPv = session.pageViews[session.pageViews.length - 1];
+    const elapsed = Math.round((Date.now() - lastPv.startTime) / 1000);
+    lastPv.duration = Math.max(1, elapsed);
+    if (lastPv.page.startsWith('Article:') && lastPv.duration >= 15) {
+      lastPv.isRead = true;
+    }
+    session.duration = session.pageViews.reduce((acc, pv) => acc + (pv.duration || 0), 0);
+    localStorage.setItem('arora_analytics', JSON.stringify(analytics));
+  }
+}
+
+function startTrackingSession() {
+  initializeAnalytics();
+
+  let visitorId = localStorage.getItem('arora_visitor_id');
+  let isNew = false;
+  if (!visitorId) {
+    visitorId = 'vis-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem('arora_visitor_id', visitorId);
+    isNew = true;
+  }
+
+  let sessionId = sessionStorage.getItem('arora_session_id');
+  if (!sessionId) {
+    sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    sessionStorage.setItem('arora_session_id', sessionId);
+    
+    const analytics = JSON.parse(localStorage.getItem('arora_analytics')) || { sessions: [] };
+    const today = new Date();
+    const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const newSession = {
+      id: sessionId,
+      visitorId: visitorId,
+      isNew: isNew,
+      timestamp: Date.now(),
+      dateString: dateString,
+      device: getDeviceType(),
+      browser: getBrowserType(),
+      duration: 0,
+      pageViews: []
+    };
+    
+    analytics.sessions.push(newSession);
+    localStorage.setItem('arora_analytics', JSON.stringify(analytics));
+  }
+
+  recordPageView('Home');
+
+  runActiveHeartbeat();
+  setInterval(runActiveHeartbeat, 5000);
+
+  window.addEventListener('beforeunload', updateCurrentPageViewDuration);
+}
