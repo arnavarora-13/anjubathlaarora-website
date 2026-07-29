@@ -20,7 +20,7 @@
        ========================================== -->
   <header class="admin-header">
     <div class="container admin-header-container">
-      <div>
+      <div class="admin-header-branding">
         <h1 style="font-family: var(--font-serif); font-size: 1.5rem; color: var(--accent-forest-green); margin: 0;">
           Editorial Dashboard
         </h1>
@@ -28,7 +28,8 @@
           Dr. Anju Bathla Arora Website
         </p>
       </div>
-      <div class="admin-header-actions">
+      <button class="admin-mobile-menu-toggle" id="admin-menu-toggle" aria-label="Toggle Admin Menu">☰</button>
+      <div class="admin-header-actions" id="admin-header-actions">
         <button class="btn btn-primary" id="btn-new-article" style="padding: 0.6rem 1.5rem; font-size: 0.8rem; border-radius: 4px;">
           New Article
         </button>
@@ -102,7 +103,7 @@
       </div>
 
       <!-- Quick Actions Grid -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+      <div class="admin-two-col-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
         <div style="background: var(--surface-white); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
           <h3 style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green); margin-bottom: 1rem;">Quick Actions</h3>
           <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -122,21 +123,40 @@
     </section>
 
     <!-- Table List Wrapper -->
-    <section class="admin-table-container" id="admin-table-wrapper" style="display: none;">
-      <table class="admin-table">
-        <thead id="admin-table-head">
-          <tr>
-            <th style="width: 35%;">Article Title</th>
-            <th style="width: 20%;">Category</th>
-            <th style="width: 15%;">Status</th>
-            <th style="width: 15%;">Date</th>
-            <th style="width: 15%; text-align: center;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="admin-table-body">
-          <!-- Populated dynamically by admin.js -->
-        </tbody>
-      </table>
+    <section id="admin-table-wrapper" style="display: none;">
+      <!-- Search & Filters Bar -->
+      <div class="admin-filters-bar">
+        <div class="admin-search-wrapper">
+          <span class="admin-search-icon">🔍</span>
+          <input type="text" id="admin-search-input" class="admin-search-input" placeholder="Search by title, author, or content...">
+        </div>
+        <div class="admin-filter-select-wrapper">
+          <label class="form-label" style="margin-bottom: 0; font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;" for="admin-category-filter">Category:</label>
+          <select id="admin-category-filter" class="admin-filter-select">
+            <option value="All">All Categories</option>
+            <option value="Emotions">Emotions</option>
+            <option value="Equity">Equity</option>
+            <option value="Exploration">Exploration</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead id="admin-table-head">
+            <tr>
+              <th style="width: 35%;">Article Title</th>
+              <th style="width: 20%;">Category</th>
+              <th style="width: 15%;">Status</th>
+              <th style="width: 15%;">Date</th>
+              <th style="width: 15%; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body">
+            <!-- Populated dynamically by admin.js -->
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- Empty State -->
@@ -149,7 +169,7 @@
     <!-- Analytics Content Panel -->
     <section class="admin-panel" id="admin-analytics-panel" style="display: none; margin-top: 30px;">
       <!-- Live Visitor Counter -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+      <div class="admin-two-col-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
         <div class="admin-stat-card" style="border-left: 2px solid #1A73E8; margin-bottom: 0;">
           <span class="admin-stat-lbl">Current Active Visitors</span>
           <span class="admin-stat-val" id="live-active-visitors" style="color: #1A73E8;">1</span>
@@ -193,7 +213,7 @@
       </div>
 
       <!-- Top Performing Content Info -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+      <div class="admin-two-col-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
         <div class="admin-stat-card" style="padding: 1.5rem 2rem; margin-bottom: 0;">
           <h4 style="font-family: var(--font-sans); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight:600;">Most Visited Page</h4>
           <span style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--accent-forest-green);" id="stats-most-visited-page">Home Library</span>
@@ -205,7 +225,7 @@
       </div>
 
       <!-- Charts Section Grid -->
-      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-bottom: 3rem;">
+      <div class="admin-charts-grid" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem; margin-bottom: 3rem;">
         <div class="admin-stat-card" style="padding: 2rem; height: 350px; margin-bottom: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; color: var(--accent-forest-green); font-weight: 600; margin: 0;">Visitor Trends</h4>
@@ -227,7 +247,7 @@
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+      <div class="admin-charts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
         <div class="admin-stat-card" style="padding: 2rem; height: 320px; margin-bottom: 0;">
           <h4 style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 1rem; color: var(--accent-forest-green); font-weight: 600;">Most Popular Articles</h4>
           <div style="position: relative; height: 230px; width: 100%;">
@@ -288,17 +308,42 @@
   <!-- ==========================================
        Review Modal (Article Detail & Actions)
        ========================================== -->
-  <div class="modal-overlay" id="review-modal">
-    <div class="modal-card" style="max-width: 800px; width: 90%;">
-      <button class="modal-close" id="review-modal-close">×</button>
-      <h3 class="modal-title" id="review-modal-title" style="margin-bottom: 0.5rem; font-size: 2rem;">Article Review</h3>
-      <p id="review-modal-meta" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-soft-gold); margin-bottom: 2.5rem; font-weight: 500;">
-        Author details...
-      </p>
+  <!-- ==========================================
+       Review Modal (Article Detail & Actions) (Medium-Style)
+       ========================================== -->
+  <div class="modal-overlay article-reader-overlay" id="review-modal">
+    <button class="modal-close" id="review-modal-close" aria-label="Close review">×</button>
+    
+    <div class="modal-card">
+      <!-- Category Badge -->
+      <div>
+        <span class="article-reader-category-badge" id="review-modal-category">Equity</span>
+      </div>
       
-      <!-- Article Text Content -->
-      <div id="review-modal-body" style="border-top: 1px solid var(--border-light); padding-top: 2rem; max-height: 50vh; overflow-y: auto;">
-        <!-- Body text content filled dynamically -->
+      <!-- Article Title -->
+      <h1 class="article-reader-title" id="review-modal-title">Article Review</h1>
+      
+      <!-- Author & Metadata -->
+      <div class="article-reader-meta">
+        <img src="assets/images/photo.jpeg" class="article-reader-avatar" alt="Dr. Anju Bathla Arora Avatar" id="review-modal-avatar">
+        <div class="article-reader-meta-info">
+          <span class="article-reader-author" id="review-modal-author">Dr. Anju Arora</span>
+          <div class="article-reader-details">
+            <span id="review-modal-date">July 15, 2026</span>
+            <span>•</span>
+            <span id="review-modal-readtime">5 min read</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Featured Image -->
+      <div class="article-reader-featured-image-wrapper" id="review-modal-image-wrapper" style="display: none;">
+        <img src="" id="review-modal-image" class="article-reader-featured-image" alt="Featured Image">
+      </div>
+      
+      <!-- Article Content Body -->
+      <div class="article-reader-content" id="review-modal-body">
+        <!-- Filled dynamically -->
       </div>
       
       <!-- Action Buttons in Modal -->
@@ -314,72 +359,103 @@
   <div class="modal-overlay" id="editor-modal">
     <div class="modal-card" style="max-width: 800px; width: 90%;">
       <button class="modal-close" id="editor-modal-close">×</button>
-      <h3 class="modal-title" id="editor-modal-title" style="margin-bottom: 1.5rem; font-size: 2rem;">New Article</h3>
+      <h3 class="modal-title" id="editor-modal-title" style="margin-bottom: 1rem; font-size: 2rem;">New Article</h3>
       
+      <!-- Editor Tabs -->
+      <div class="editor-tabs">
+        <button type="button" class="editor-tab active" id="editor-tab-write">Write</button>
+        <button type="button" class="editor-tab" id="editor-tab-preview">Live Preview</button>
+      </div>
+
       <form id="article-editor-form">
         <input type="hidden" id="editor-article-id">
         
-        <div class="form-group" style="margin-bottom: 1.25rem;">
-          <label class="form-label" for="editor-title" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Title</label>
-          <input type="text" id="editor-title" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="Enter a compelling title" required>
-        </div>
+        <!-- Write View Container -->
+        <div id="editor-write-container">
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label class="form-label" for="editor-title" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Title</label>
+            <input type="text" id="editor-title" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="Enter a compelling title" required>
+          </div>
 
-        <div class="editor-form-grid">
-          <div class="form-group">
-            <label class="form-label" for="editor-category" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Category</label>
-            <select id="editor-category" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;" required>
-              <option value="Emotions">Emotions</option>
-              <option value="Equity">Equity</option>
-              <option value="Exploration">Exploration</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="editor-date" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Publish Date &amp; Time</label>
-            <input type="datetime-local" id="editor-date" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="editor-readtime" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Read Time</label>
-            <input type="text" id="editor-readtime" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="e.g. 5 min read">
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Featured Image</label>
-          <div class="image-input-grid">
-            <div>
-              <label class="form-label" for="editor-image-url" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Image URL</label>
-              <input type="text" id="editor-image-url" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="https://example.com/image.jpg">
+          <div class="editor-form-grid">
+            <div class="form-group">
+              <label class="form-label" for="editor-category" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Category</label>
+              <select id="editor-category" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;" required>
+                <option value="Emotions">Emotions</option>
+                <option value="Equity">Equity</option>
+                <option value="Exploration">Exploration</option>
+              </select>
             </div>
-            <div>
-              <label class="form-label" for="editor-image-file" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Or Upload File</label>
-              <input type="file" id="editor-image-file" accept="image/*" class="form-control" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;">
+            <div class="form-group">
+              <label class="form-label" for="editor-date" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Publish Date &amp; Time</label>
+              <input type="datetime-local" id="editor-date" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editor-readtime" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Read Time (Optional)</label>
+              <input type="text" id="editor-readtime" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="e.g. 5 min read">
             </div>
           </div>
-          <div class="featured-image-preview-wrapper" id="image-preview-container">
-            <img src="" id="editor-image-preview" class="featured-image-preview" alt="Preview">
-          </div>
-        </div>
 
-        <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Content</label>
-          
-          <div class="rich-editor-wrapper">
-            <div class="editor-toolbar">
-              <button type="button" class="editor-btn" data-command="bold" title="Bold"><b>B</b></button>
-              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h1" title="Heading 1">H1</button>
-              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h2" title="Heading 2">H2</button>
-              <button type="button" class="editor-btn" data-command="formatBlock" data-value="h3" title="Heading 3">H3</button>
-              <button type="button" class="editor-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
-              <button type="button" class="editor-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
-              <button type="button" class="editor-btn" data-command="createLink" title="Insert Link">Link</button>
-              <button type="button" class="editor-btn" data-command="insertImage" title="Insert Image">Image</button>
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Featured Image</label>
+            <div class="image-input-grid">
+              <div>
+                <label class="form-label" for="editor-image-url" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Image URL</label>
+                <input type="text" id="editor-image-url" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;" placeholder="https://example.com/image.jpg">
+              </div>
+              <div>
+                <label class="form-label" for="editor-image-file" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Or Upload File</label>
+                <input type="file" id="editor-image-file" accept="image/*" class="form-control" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 4px; background: white; outline: none;">
+              </div>
             </div>
-            <div class="rich-editor" id="editor-content" contenteditable="true" placeholder="Begin writing your piece here..."></div>
+            
+            <!-- Drag & Drop Zone -->
+            <div class="drag-drop-area" id="editor-drag-drop-zone" style="margin-top: 1rem;">
+              <span class="drag-drop-text">Drag &amp; drop featured image here, or select files</span>
+            </div>
+
+            <div class="featured-image-preview-wrapper" id="image-preview-container">
+              <img src="" id="editor-image-preview" class="featured-image-preview" alt="Preview">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-forest-green);">Article Content</label>
+            
+            <div class="rich-editor-wrapper">
+              <div class="editor-toolbar">
+                <button type="button" class="editor-btn" data-command="bold" title="Bold"><b>B</b></button>
+                <button type="button" class="editor-btn" data-command="italic" title="Italic"><i>I</i></button>
+                <button type="button" class="editor-btn" data-command="underline" title="Underline"><u>U</u></button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="h1" title="Heading 1">H1</button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="h2" title="Heading 2">H2</button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="h3" title="Heading 3">H3</button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="h4" title="Heading 4">H4</button>
+                <button type="button" class="editor-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+                <button type="button" class="editor-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="blockquote" title="Block Quote">Quote</button>
+                <button type="button" class="editor-btn" data-command="formatBlock" data-value="pre" title="Code Block">Code</button>
+                <button type="button" class="editor-btn" data-command="createLink" title="Insert Link">Link</button>
+                <button type="button" class="editor-btn" data-command="insertImage" title="Insert Image">Image</button>
+                <button type="button" class="editor-btn" id="editor-btn-video" title="Embed Video">Video</button>
+              </div>
+              <div class="rich-editor" id="editor-content" contenteditable="true" placeholder="Begin writing your piece here..."></div>
+            </div>
           </div>
         </div>
 
+        <!-- Live Preview Container -->
+        <div id="editor-preview-container" style="display: none;">
+          <!-- Filled dynamically by Live Preview parser -->
+        </div>
+
+        <!-- Editor Form Actions -->
         <div class="editor-form-actions">
+          <!-- Auto-save Draft Status -->
+          <span class="autosave-indicator" id="editor-autosave-status"></span>
+          
           <button type="button" class="btn btn-secondary" id="editor-cancel-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Cancel</button>
+          <button type="button" class="btn btn-secondary" id="editor-preview-modal-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--accent-forest-green);">Preview Mode</button>
           <button type="button" class="btn btn-secondary" id="editor-draft-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--text-muted);">Save Draft</button>
           <button type="button" class="btn btn-secondary" id="editor-schedule-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem; color: var(--accent-soft-gold);">Schedule Post</button>
           <button type="submit" class="btn btn-primary" id="editor-publish-btn" style="border-radius: 4px; padding: 0.6rem 1.5rem;">Publish Article</button>

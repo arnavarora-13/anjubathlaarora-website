@@ -229,34 +229,251 @@ function renderArticles() {
   });
 }
 
-// Open Full Article Modal
+// Open Full Article Modal (Updates hash for routing)
 function openArticleModal(id) {
+  window.location.hash = 'article/' + id;
+}
+
+// Renders the article in Medium-style viewer
+function renderArticleModalContent(id) {
   const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
   const article = articles.find(art => art.id === id);
-  if (!article) return;
+  if (!article) {
+    window.location.hash = '';
+    return;
+  }
 
   const modal = document.getElementById('article-view-modal');
   const title = document.getElementById('modal-view-title');
-  const authorDate = document.getElementById('modal-view-author-date');
+  const author = document.getElementById('modal-view-author');
+  const date = document.getElementById('modal-view-date');
+  const readtime = document.getElementById('modal-view-readtime');
+  const category = document.getElementById('modal-view-category');
+  const image = document.getElementById('modal-view-image');
+  const imageWrapper = document.getElementById('modal-view-image-wrapper');
   const body = document.getElementById('modal-view-body');
+  
+  // Set reading progress bar to 0% initially
+  const progress = document.getElementById('reading-progress');
+  if (progress) progress.style.width = '0%';
 
   title.textContent = article.title;
-  authorDate.textContent = `By ${article.author || 'Dr. Anju Arora'} • Published on ${article.date || 'Recent'} (${article.category || 'Research'})`;
+  author.textContent = article.author || 'Dr. Anju Arora';
+  date.textContent = article.date || 'Recent';
+  readtime.textContent = article.readTime || '3 min read';
+  category.textContent = article.category || 'Research';
   
+  if (article.image) {
+    image.src = article.image;
+    imageWrapper.style.display = 'block';
+  } else {
+    imageWrapper.style.display = 'none';
+  }
+
   // Support both rich text HTML content and legacy double line break paragraph splitting
   if (/<[a-z][\s\S]*>/i.test(article.content)) {
     body.innerHTML = article.content;
   } else {
     const paragraphs = article.content.split('\n\n').filter(p => p.trim() !== '');
-    body.innerHTML = paragraphs.map(p => `<p style="margin-bottom: 1.5rem; font-size: 1.05rem; line-height: 1.7; color: var(--text-charcoal);">${p.replace(/\n/g, '<br>')}</p>`).join('');
+    body.innerHTML = paragraphs.map(p => `<p style="margin-bottom: 1.75rem; font-size: 1.25rem; line-height: 1.85; color: #292929;">${p.replace(/\n/g, '<br>')}</p>`).join('');
   }
+
+  // Setup Share buttons
+  setupShareButtons(article);
+
+  // Setup Navigation
+  setupArticleNavigation(article.id);
+
+  // Setup Related Articles
+  setupRelatedArticles(article);
 
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
+  modal.scrollTop = 0; // scroll to top when opening
 
   // Track article view
   if (typeof recordPageView === 'function') {
     recordPageView("Article: " + article.title);
+  }
+}
+
+// Show toast message
+function showToast(message) {
+  const toast = document.getElementById('toast-message');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// Setup social sharing
+function setupShareButtons(article) {
+  const shareUrl = window.location.origin + window.location.pathname + '#article/' + article.id;
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedTitle = encodeURIComponent(article.title);
+  
+  const bindShare = (selector, url) => {
+    document.querySelectorAll(selector).forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(url, '_blank', 'noopener,noreferrer');
+      };
+    });
+  };
+  
+  bindShare('.btn-share-facebook', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
+  bindShare('.btn-share-whatsapp', `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`);
+  bindShare('.btn-share-linkedin', `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`);
+  bindShare('.btn-share-x', `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`);
+  
+  document.querySelectorAll('.btn-share-copy').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast('Link copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy link: ', err);
+      });
+    };
+  });
+  
+  const copyAndRedirect = (selector, redirectUrl, platformName) => {
+    document.querySelectorAll(selector).forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast(`Link copied! Opening ${platformName}...`);
+          setTimeout(() => {
+            window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+          }, 1000);
+        }).catch(() => {
+          window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+        });
+      };
+    });
+  };
+  
+  copyAndRedirect('.btn-share-instagram', 'https://www.instagram.com', 'Instagram');
+  copyAndRedirect('.btn-share-medium', 'https://medium.com', 'Medium');
+}
+
+// Setup Next / Previous buttons
+function setupArticleNavigation(id) {
+  const published = getPublishedArticles();
+  
+  // Sort articles - newest first
+  published.sort((a, b) => {
+    if (a.id.startsWith('seed-') && !b.id.startsWith('seed-')) return 1;
+    if (!a.id.startsWith('seed-') && b.id.startsWith('seed-')) return -1;
+    return b.timestamp - a.timestamp;
+  });
+
+  const currentIndex = published.findIndex(art => art.id === id);
+  const prevBtn = document.getElementById('nav-prev-article');
+  const prevTitle = document.getElementById('nav-prev-title');
+  
+  if (currentIndex > 0) {
+    const prevArt = published[currentIndex - 1];
+    prevBtn.style.visibility = 'visible';
+    prevTitle.textContent = prevArt.title;
+    prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      openArticleModal(prevArt.id);
+    };
+  } else {
+    prevBtn.style.visibility = 'hidden';
+  }
+  
+  const nextBtn = document.getElementById('nav-next-article');
+  const nextTitle = document.getElementById('nav-next-title');
+  
+  if (currentIndex >= 0 && currentIndex < published.length - 1) {
+    const nextArt = published[currentIndex + 1];
+    nextBtn.style.visibility = 'visible';
+    nextTitle.textContent = nextArt.title;
+    nextBtn.onclick = (e) => {
+      e.stopPropagation();
+      openArticleModal(nextArt.id);
+    };
+  } else {
+    nextBtn.style.visibility = 'hidden';
+  }
+}
+
+// Setup Related Articles grid
+function setupRelatedArticles(currentArticle) {
+  const published = getPublishedArticles();
+  
+  // Find related articles (same category, excluding current)
+  let related = published.filter(art => art.category === currentArticle.category && art.id !== currentArticle.id);
+  
+  // If not enough related articles, fill with other categories (excluding current)
+  if (related.length < 3) {
+    const others = published.filter(art => art.category !== currentArticle.category && art.id !== currentArticle.id);
+    related = related.concat(others.slice(0, 3 - related.length));
+  }
+  
+  // Limit to 3
+  related = related.slice(0, 3);
+  
+  const relatedGrid = document.getElementById('related-articles-grid');
+  if (!relatedGrid) return;
+  relatedGrid.innerHTML = '';
+  
+  if (related.length === 0) {
+    relatedGrid.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">No related articles found.</p>`;
+    return;
+  }
+  
+  related.forEach(art => {
+    const card = document.createElement('div');
+    card.className = 'article-card reveal active';
+    card.style.minHeight = 'auto';
+    card.style.padding = '1.5rem';
+    card.style.cursor = 'pointer';
+    
+    card.innerHTML = `
+      <div class="article-card-image-wrapper" style="aspect-ratio: 16/10; margin-bottom: 1rem;">
+        <img src="${art.image || 'assets/images/photo.jpeg'}" alt="${art.title}" class="article-card-image" loading="lazy">
+      </div>
+      <div class="article-meta" style="margin-bottom: 0.75rem; font-size: 0.7rem;">
+        <span class="article-category">${art.category}</span>
+        <span>${art.readTime || '3 min read'}</span>
+      </div>
+      <h4 style="font-size: 1.15rem; margin-bottom: 0.5rem; line-height: 1.3; font-family: var(--font-serif); color: var(--accent-forest-green); font-weight: 500;">${art.title}</h4>
+    `;
+    
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openArticleModal(art.id);
+    });
+    
+    relatedGrid.appendChild(card);
+  });
+}
+
+// Router hash change handler
+function handleHashChange() {
+  const hash = window.location.hash;
+  const match = hash.match(/^#?article\/(.+)$/);
+  
+  const modal = document.getElementById('article-view-modal');
+  if (match) {
+    const articleId = match[1];
+    renderArticleModalContent(articleId);
+  } else {
+    if (modal && modal.classList.contains('open')) {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      if (typeof recordPageView === 'function') {
+        recordPageView('Home');
+      }
+    }
   }
 }
 
@@ -294,10 +511,11 @@ function setupModalHandlers() {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         const wasOpen = overlay.classList.contains('open');
-        overlay.classList.remove('open');
-        document.body.style.overflow = '';
-        if (wasOpen && overlay.id === 'article-view-modal' && typeof recordPageView === 'function') {
-          recordPageView('Home');
+        if (wasOpen && overlay.id === 'article-view-modal') {
+          window.location.hash = ''; // triggers hashchange which closes modal
+        } else {
+          overlay.classList.remove('open');
+          document.body.style.overflow = '';
         }
       }
     });
@@ -307,17 +525,23 @@ function setupModalHandlers() {
   const closeViewModal = document.getElementById('view-modal-close');
   if (closeViewModal) {
     closeViewModal.addEventListener('click', () => {
-      document.getElementById('article-view-modal').classList.remove('open');
-      document.body.style.overflow = '';
-      if (typeof recordPageView === 'function') {
-        recordPageView('Home');
-      }
+      window.location.hash = ''; // triggers hashchange which closes modal
+    });
+  }
+
+  // Scroll listener for reading progress bar
+  const viewModal = document.getElementById('article-view-modal');
+  if (viewModal) {
+    viewModal.addEventListener('scroll', () => {
+      const progress = document.getElementById('reading-progress');
+      if (!progress) return;
+      const scrollTop = viewModal.scrollTop;
+      const scrollHeight = viewModal.scrollHeight - viewModal.clientHeight;
+      const percent = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      progress.style.width = percent + '%';
     });
   }
 }
-
-// ==========================================
-// Visitor Submission Modal Handler
 // ==========================================
 function setupVisitorSubmissionModal() {
   const submitReviewBtn = document.getElementById('btn-submit-review');
@@ -523,6 +747,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setupVisitorSubmissionModal();
   setupCategoryFiltering();
   startTrackingSession();
+
+  // Hash routing triggers
+  window.addEventListener('hashchange', handleHashChange);
+  handleHashChange(); // check initial hash on load
 });
 
 // ==========================================

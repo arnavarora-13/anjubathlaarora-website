@@ -100,25 +100,43 @@ function renderAdminTable() {
   } else if (activeTab === 'published') {
     thead.innerHTML = `
       <tr>
-        <th style="width: 35%;">Article Title</th>
-        <th style="width: 20%;">Category</th>
+        <th style="width: 30%;">Article Title</th>
+        <th style="width: 15%;">Category</th>
         <th style="width: 15%;">Status</th>
         <th style="width: 15%;">Date</th>
-        <th style="width: 15%; text-align: center;">Actions</th>
+        <th style="width: 25%; text-align: center;">Actions</th>
       </tr>
     `;
     filtered = db.filter(art => art.status === 'published' || art.status === 'draft');
   } else if (activeTab === 'scheduled') {
     thead.innerHTML = `
       <tr>
-        <th style="width: 35%;">Article Title</th>
-        <th style="width: 20%;">Category</th>
+        <th style="width: 30%;">Article Title</th>
+        <th style="width: 15%;">Category</th>
         <th style="width: 15%;">Status</th>
         <th style="width: 15%;">Date</th>
-        <th style="width: 15%; text-align: center;">Actions</th>
+        <th style="width: 25%; text-align: center;">Actions</th>
       </tr>
     `;
     filtered = db.filter(art => art.status === 'scheduled');
+  }
+  
+  // Apply Search and Category Filters
+  const searchInput = document.getElementById('admin-search-input');
+  const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const catFilter = document.getElementById('admin-category-filter');
+  const activeCategory = catFilter ? catFilter.value : 'All';
+
+  if (activeCategory !== 'All') {
+    filtered = filtered.filter(art => art.category === activeCategory);
+  }
+  
+  if (searchQuery) {
+    filtered = filtered.filter(art => 
+      (art.title || '').toLowerCase().includes(searchQuery) ||
+      (art.author || '').toLowerCase().includes(searchQuery) ||
+      (art.content || '').replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery)
+    );
   }
   
   // Sort user submissions by newest first, seed articles last
@@ -159,7 +177,7 @@ function renderAdminTable() {
         : '';
         
       tr.innerHTML = `
-        <td>
+        <td data-label="Title & Preview">
           <div style="display: flex; flex-direction: column;">
             <strong style="color: var(--accent-forest-green); font-family: var(--font-serif); font-size: 1.05rem; font-weight: normal; display: flex; align-items: center;">
               ${art.title} ${statusBadge}
@@ -169,10 +187,10 @@ function renderAdminTable() {
             </small>
           </div>
         </td>
-        <td>${art.author || 'Visitor'}</td>
-        <td>${art.category || 'Research'}</td>
-        <td>${art.date || 'N/A'}</td>
-        <td class="admin-actions" style="text-align: right; white-space: nowrap;">
+        <td data-label="Author">${art.author || 'Visitor'}</td>
+        <td data-label="Category">${art.category || 'Research'}</td>
+        <td data-label="Submission Date">${art.date || 'N/A'}</td>
+        <td class="admin-actions" data-label="Actions" style="text-align: right; white-space: nowrap;">
           ${actionButtons}
         </td>
       `;
@@ -193,19 +211,20 @@ function renderAdminTable() {
           : `<button class="btn btn-sm btn-secondary btn-action btn-action-unpub" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Unpublish</button>`
         }
         <button class="btn btn-sm btn-secondary btn-action btn-action-edit" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Edit</button>
+        <button class="btn btn-sm btn-secondary btn-action btn-action-dup" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem; margin-right: 0.25rem; background: white; border: 1px solid var(--border-color);">Duplicate</button>
         <button class="btn btn-sm btn-delete btn-action btn-action-del" data-id="${art.id}" style="padding: 0.35rem 0.75rem; font-size: 0.7rem;">Delete</button>
       `;
 
       tr.innerHTML = `
-        <td>
+        <td data-label="Title">
           <strong style="color: var(--accent-forest-green); font-family: var(--font-serif); font-size: 1.05rem; font-weight: normal;">
             ${art.title}
           </strong>
         </td>
-        <td>${art.category || 'Research'}</td>
-        <td><span class="badge-status ${statusClass}">${displayStatus}</span></td>
-        <td>${art.date || 'N/A'}</td>
-        <td class="admin-actions" style="text-align: right; white-space: nowrap;">
+        <td data-label="Category">${art.category || 'Research'}</td>
+        <td data-label="Status"><span class="badge-status ${statusClass}">${displayStatus}</span></td>
+        <td data-label="Date">${art.date || 'N/A'}</td>
+        <td class="admin-actions" data-label="Actions" style="text-align: right; white-space: nowrap;">
           ${actionButtons}
         </td>
       `;
@@ -234,22 +253,34 @@ function openReviewModal(id) {
 
   const modal = document.getElementById('review-modal');
   const title = document.getElementById('review-modal-title');
-  const meta = document.getElementById('review-modal-meta');
+  const author = document.getElementById('review-modal-author');
+  const date = document.getElementById('review-modal-date');
+  const readtime = document.getElementById('review-modal-readtime');
+  const category = document.getElementById('review-modal-category');
+  const image = document.getElementById('review-modal-image');
+  const imageWrapper = document.getElementById('review-modal-image-wrapper');
   const body = document.getElementById('review-modal-body');
   const footer = document.getElementById('review-modal-footer');
 
   title.textContent = art.title;
+  author.textContent = art.author || 'Visitor';
+  date.textContent = art.date || 'Recent';
+  readtime.textContent = art.readTime || '3 min read';
+  category.textContent = art.category || 'Research';
   
-  const authorText = art.author || 'Visitor';
-  const emailText = art.email ? ` | Email: ${art.email}` : '';
-  meta.textContent = `Author: ${authorText}${emailText} | Date: ${art.date || 'Recent'} | Category: ${art.category || 'Research'} | Read Time: ${art.readTime || '3 min read'}`;
-  
+  if (art.image) {
+    image.src = art.image;
+    imageWrapper.style.display = 'block';
+  } else {
+    imageWrapper.style.display = 'none';
+  }
+
   // Render HTML directly if rich text, otherwise split legacy text by double line breaks
   if (/<[a-z][\s\S]*>/i.test(art.content)) {
     body.innerHTML = art.content;
   } else {
     const paragraphs = art.content.split('\n\n').filter(p => p.trim() !== '');
-    body.innerHTML = paragraphs.map(p => `<p style="margin-bottom: 1.25rem; font-size: 1rem; color: var(--text-charcoal); line-height: 1.6;">${p.replace(/\n/g, '<br>')}</p>`).join('');
+    body.innerHTML = paragraphs.map(p => `<p style="margin-bottom: 1.75rem; font-size: 1.25rem; line-height: 1.85; color: #292929;">${p.replace(/\n/g, '<br>')}</p>`).join('');
   }
 
   // Footer Actions based on whether it is a visitor submission or admin article
@@ -609,6 +640,13 @@ function attachActionListeners() {
     });
   });
 
+  document.querySelectorAll('.btn-action-dup').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      duplicateArticle(btn.getAttribute('data-id'));
+    });
+  });
+
   document.querySelectorAll('.btn-action-del').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -617,6 +655,22 @@ function attachActionListeners() {
       }
     });
   });
+}
+
+function duplicateArticle(id) {
+  const db = getArticles();
+  const art = db.find(a => a.id === id);
+  if (!art) return;
+  const newArt = {
+    ...art,
+    id: 'user-' + Date.now(),
+    title: art.title + ' - Copy',
+    status: 'draft',
+    timestamp: Date.now()
+  };
+  db.push(newArt);
+  saveArticles(db);
+  refreshUI();
 }
 
 let currentTrendRange = 'daily'; // 'daily', 'weekly', 'monthly'
@@ -1290,14 +1344,27 @@ function setupModals() {
   }
 }
 
-// Rich Text Editor Commands Binding
+// Mobile Admin Header Toggle
+function setupMobileAdminMenu() {
+  const menuToggle = document.getElementById('admin-menu-toggle');
+  const headerActions = document.getElementById('admin-header-actions');
+  if (menuToggle && headerActions) {
+    menuToggle.addEventListener('click', () => {
+      headerActions.classList.toggle('open');
+    });
+  }
+}
+
+// Rich Text Editor Commands & Enhancements
 function setupRichEditor() {
   document.querySelectorAll('.editor-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const command = btn.getAttribute('data-command');
       const value = btn.getAttribute('data-value') || null;
-      
+      const richEditor = document.getElementById('editor-content');
+      richEditor.focus();
+
       if (command === 'createLink') {
         const url = prompt('Enter the link URL (e.g. https://google.com):');
         if (url) {
@@ -1306,49 +1373,273 @@ function setupRichEditor() {
       } else if (command === 'insertImage') {
         const url = prompt('Enter the image URL:');
         if (url) {
-          document.execCommand(command, false, url);
+          const caption = prompt('Enter an image caption (optional):');
+          if (caption) {
+            const figureHtml = `<figure><img src="${url}" alt="${caption}"><figcaption>${caption}</figcaption></figure><p><br></p>`;
+            document.execCommand('insertHTML', false, figureHtml);
+          } else {
+            document.execCommand('insertImage', false, url);
+          }
         }
+      } else if (command === 'formatBlock' && value === 'pre') {
+        const selection = window.getSelection().toString();
+        const codeHtml = `<pre><code>${selection || 'Code block'}</code></pre><p><br></p>`;
+        document.execCommand('insertHTML', false, codeHtml);
       } else {
         document.execCommand(command, false, value);
       }
       
-      // Keep focus in the editor
-      document.getElementById('editor-content').focus();
+      triggerAutoSave();
     });
   });
+
+  // Video Embedding Handler
+  const videoBtn = document.getElementById('editor-btn-video');
+  if (videoBtn) {
+    videoBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const input = prompt('Enter YouTube/Vimeo video URL or iframe embed code:');
+      if (!input) return;
+
+      let videoUrl = '';
+      if (input.includes('<iframe')) {
+        const srcMatch = input.match(/src=["']([^"']+)["']/);
+        if (srcMatch) videoUrl = srcMatch[1];
+      } else if (input.includes('youtube.com/watch?v=')) {
+        const id = input.split('v=')[1].split('&')[0];
+        videoUrl = `https://www.youtube.com/embed/${id}`;
+      } else if (input.includes('youtu.be/')) {
+        const id = input.split('youtu.be/')[1].split('?')[0];
+        videoUrl = `https://www.youtube.com/embed/${id}`;
+      } else if (input.includes('vimeo.com/')) {
+        const id = input.split('vimeo.com/')[1].split('?')[0];
+        videoUrl = `https://player.vimeo.com/video/${id}`;
+      } else {
+        videoUrl = input;
+      }
+
+      if (videoUrl) {
+        const videoHtml = `
+          <div class="video-embed-wrapper">
+            <iframe src="${videoUrl}" allowfullscreen frameborder="0"></iframe>
+          </div>
+          <p><br></p>
+        `;
+        document.getElementById('editor-content').focus();
+        document.execCommand('insertHTML', false, videoHtml);
+        triggerAutoSave();
+      }
+    });
+  }
 }
 
-// Image previewing & reading
+// Auto-Save Draft System
+let autoSaveTimer = null;
+function triggerAutoSave() {
+  const autosaveStatus = document.getElementById('editor-autosave-status');
+  if (!autosaveStatus) return;
+
+  autosaveStatus.textContent = 'Saving...';
+  autosaveStatus.className = 'autosave-indicator saving';
+
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const titleVal = document.getElementById('editor-title').value.trim();
+    const contentHtml = document.getElementById('editor-content').innerHTML;
+
+    if (titleVal || contentHtml) {
+      const draftData = {
+        title: titleVal,
+        category: document.getElementById('editor-category').value,
+        date: document.getElementById('editor-date').value,
+        readTime: document.getElementById('editor-readtime').value,
+        imageUrl: document.getElementById('editor-image-url').value,
+        content: contentHtml,
+        savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+      localStorage.setItem('arora_autosave_draft', JSON.stringify(draftData));
+      
+      autosaveStatus.textContent = `Draft auto-saved at ${draftData.savedAt}`;
+      autosaveStatus.className = 'autosave-indicator saved';
+    } else {
+      autosaveStatus.textContent = '';
+    }
+  }, 1000);
+}
+
+// Live Preview & Editor Tabs
+function setupLivePreview() {
+  const writeTab = document.getElementById('editor-tab-write');
+  const previewTab = document.getElementById('editor-tab-preview');
+  const previewModalBtn = document.getElementById('editor-preview-modal-btn');
+  const writeContainer = document.getElementById('editor-write-container');
+  const previewContainer = document.getElementById('editor-preview-container');
+
+  const updatePreview = () => {
+    const titleVal = document.getElementById('editor-title').value.trim() || 'Untitled Article';
+    const categoryVal = document.getElementById('editor-category').value || 'Emotions';
+    const readTimeVal = document.getElementById('editor-readtime').value || '3 min read';
+    const contentHtml = document.getElementById('editor-content').innerHTML || '<p><em>No content written yet...</em></p>';
+    
+    let imageSrc = document.getElementById('editor-image-preview').src;
+    if (!imageSrc || imageSrc.endsWith('admin.html')) {
+      imageSrc = document.getElementById('editor-image-url').value.trim();
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+    previewContainer.innerHTML = `
+      <div style="max-width: 720px; margin: 0 auto; background: #ffffff; padding: 1rem 0;">
+        <span class="article-reader-category-badge">${categoryVal}</span>
+        <h1 class="article-reader-title" style="margin-top: 1rem; font-size: 2.4rem;">${titleVal}</h1>
+        
+        <div class="article-reader-meta">
+          <img src="assets/images/photo.jpeg" class="article-reader-avatar" alt="Avatar">
+          <div class="article-reader-meta-info">
+            <span class="article-reader-author">Dr. Anju Arora</span>
+            <div class="article-reader-details">
+              <span>${todayStr}</span>
+              <span>•</span>
+              <span>${readTimeVal}</span>
+            </div>
+          </div>
+        </div>
+
+        ${imageSrc ? `<div class="article-reader-featured-image-wrapper"><img src="${imageSrc}" class="article-reader-featured-image" alt="Preview"></div>` : ''}
+
+        <div class="article-reader-content">
+          ${contentHtml}
+        </div>
+      </div>
+    `;
+  };
+
+  if (writeTab && previewTab) {
+    writeTab.addEventListener('click', () => {
+      writeTab.classList.add('active');
+      previewTab.classList.remove('active');
+      writeContainer.style.display = 'block';
+      previewContainer.style.display = 'none';
+    });
+
+    previewTab.addEventListener('click', () => {
+      previewTab.classList.add('active');
+      writeTab.classList.remove('active');
+      writeContainer.style.display = 'none';
+      previewContainer.style.display = 'block';
+      updatePreview();
+    });
+  }
+
+  if (previewModalBtn) {
+    previewModalBtn.addEventListener('click', () => {
+      if (previewContainer.style.display === 'block') {
+        writeTab.click();
+      } else {
+        previewTab.click();
+      }
+    });
+  }
+}
+
+// Drag and drop image upload & editor placement
 function setupImageUploading() {
   const imageUrlInput = document.getElementById('editor-image-url');
   const imageFileInput = document.getElementById('editor-image-file');
   const imagePreview = document.getElementById('editor-image-preview');
   const previewContainer = document.getElementById('image-preview-container');
+  const dragZone = document.getElementById('editor-drag-drop-zone');
+  const richEditor = document.getElementById('editor-content');
 
   imageUrlInput.addEventListener('input', () => {
     const val = imageUrlInput.value.trim();
     if (val) {
       imagePreview.src = val;
       previewContainer.style.display = 'block';
-      imageFileInput.value = ''; // clear file input
+      imageFileInput.value = '';
     } else {
       previewContainer.style.display = 'none';
       imagePreview.src = '';
     }
+    triggerAutoSave();
   });
 
-  imageFileInput.addEventListener('change', () => {
-    const file = imageFileInput.files[0];
-    if (file) {
+  const handleFile = (file) => {
+    if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
         imagePreview.src = e.target.result;
         previewContainer.style.display = 'block';
-        imageUrlInput.value = ''; // clear url input
+        imageUrlInput.value = '';
+        triggerAutoSave();
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  imageFileInput.addEventListener('change', () => {
+    if (imageFileInput.files.length > 0) {
+      handleFile(imageFileInput.files[0]);
+    }
   });
+
+  if (dragZone) {
+    dragZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dragZone.classList.add('drag-over');
+    });
+
+    dragZone.addEventListener('dragleave', () => {
+      dragZone.classList.remove('drag-over');
+    });
+
+    dragZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragZone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    dragZone.addEventListener('click', () => {
+      imageFileInput.click();
+    });
+  }
+
+  // Drag and drop directly into rich text contenteditable div
+  if (richEditor) {
+    richEditor.addEventListener('input', () => triggerAutoSave());
+
+    richEditor.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      richEditor.classList.add('drag-over');
+    });
+
+    richEditor.addEventListener('dragleave', () => {
+      richEditor.classList.remove('drag-over');
+    });
+
+    richEditor.addEventListener('drop', (e) => {
+      e.preventDefault();
+      richEditor.classList.remove('drag-over');
+      if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const caption = prompt('Enter a caption for this dropped image (optional):');
+            const figureHtml = caption 
+              ? `<figure><img src="${ev.target.result}" alt="${caption}"><figcaption>${caption}</figcaption></figure><p><br></p>`
+              : `<p><img src="${ev.target.result}" style="max-width:100%; border-radius:4px;"></p><p><br></p>`;
+            richEditor.focus();
+            document.execCommand('insertHTML', false, figureHtml);
+            triggerAutoSave();
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    });
+  }
 }
 
 // Setup Password wall authentication handlers
@@ -1384,10 +1675,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set up interfaces
   checkAuth();
   setupPasswordWall();
+  setupMobileAdminMenu();
   setupTabs();
   setupModals();
   setupRichEditor();
   setupImageUploading();
+  setupLivePreview();
 
   // Create article trigger
   const newBtn = document.getElementById('btn-new-article');
@@ -1422,6 +1715,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+  // Auto-save input listeners for form controls
+  ['editor-title', 'editor-category', 'editor-date', 'editor-readtime'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => triggerAutoSave());
+  });
+
   // Live Active Visitors update intervals
   setInterval(() => {
     if (sessionStorage.getItem('admin_authorized') === 'true') {
@@ -1442,3 +1741,4 @@ document.addEventListener('DOMContentLoaded', () => {
     switchPanel();
   }
 });
+
