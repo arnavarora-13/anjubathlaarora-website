@@ -2,6 +2,9 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/articles/:slug*", "destination": "/index.html" },
+    { "source": "/article/:id*", "destination": "/index.html" },
+    { "source": "/((?!assets/|admin|styles\\.css|app\\.js|admin\\.js|articles\\.json).*)$", "destination": "/index.html" }
   ]
 }
+
