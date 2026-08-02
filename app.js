@@ -8,6 +8,10 @@ const DEFAULT_ARTICLES = [
   {
     id: 'seed-1',
     title: 'The Psychology of Market Volatility',
+    seoTitle: 'The Psychology of Market Volatility | Dr. Anju Bathla Arora',
+    socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
+    socialShareDescription: 'Discover how emotional intelligence helps investors make better decisions, overcome market anxiety, and create long-term financial success.',
+    socialShareImage: 'assets/images/book2.jpeg',
     author: 'Dr. Anju Arora',
     content: `Understanding how emotional intelligence impacts investment decisions during economic downturns is crucial for long-term financial success. Market volatility is not just a mathematical representation of risk; it is a direct reflection of human psychology. 
 
@@ -24,6 +28,10 @@ To bridge this gap, investors must develop self-regulation and structural discip
   {
     id: 'seed-2',
     title: 'Defining Agility in Modern Workspaces',
+    seoTitle: 'Defining Agility in Modern Workspaces | Dr. Anju Bathla Arora',
+    socialShareTitle: 'Defining Agility in Modern Workspaces',
+    socialShareDescription: 'Explore the core mechanisms of emotional and organizational agility needed to navigate modern hybrid work environments effectively.',
+    socialShareImage: 'assets/images/photo.jpeg',
     author: 'Dr. Anju Arora',
     content: `Organizational structures are rapidly evolving to accommodate remote-first and hybrid collaboration models. In the book Agilent, I discuss the core mechanisms of emotional and organizational agility. 
 
@@ -40,6 +48,10 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
   {
     id: 'seed-3',
     title: 'Rekindling Purpose in Professional Life',
+    seoTitle: 'Rekindling Purpose in Professional Life | Dr. Anju Bathla Arora',
+    socialShareTitle: 'Rekindling Purpose in Professional Life',
+    socialShareDescription: 'A guide to finding meaningful work alignment, sustained resilience, and avoiding burnout through conscious reflection.',
+    socialShareImage: 'assets/images/book1.jpeg',
     author: 'Dr. Anju Arora',
     content: `A guide to finding meaningful work alignment and avoiding burnout through conscious reflection. In Rekindled Life, I reflect on returning to life after near-death experiences and finding appreciation for every moment.
 
@@ -278,6 +290,9 @@ function renderArticleModalContent(id) {
     body.innerHTML = paragraphs.map(p => `<p style="margin-bottom: 1.75rem; font-size: 1.25rem; line-height: 1.85; color: #292929;">${p.replace(/\n/g, '<br>')}</p>`).join('');
   }
 
+  // Update document Open Graph and Twitter metadata
+  updateDocumentMetaTags(article);
+
   // Setup Share buttons
   setupShareButtons(article);
 
@@ -308,12 +323,104 @@ function showToast(message) {
   }, 3000);
 }
 
+// Helper: Extract 150-200 character excerpt for social previews
+function getArticleExcerpt(article) {
+  if (article.socialShareDescription && article.socialShareDescription.trim()) {
+    return article.socialShareDescription.trim();
+  }
+  let text = (article.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (text.length <= 180) return text;
+  let truncated = text.substring(0, 175);
+  let lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > 100) {
+    truncated = truncated.substring(0, lastSpace);
+  }
+  return truncated + '...';
+}
+
+// Helper: Generate canonical article URL on this website only
+function getArticleCanonicalUrl(articleId) {
+  const origin = window.location.origin;
+  let path = window.location.pathname;
+  if (path.endsWith('index.html')) {
+    path = path.substring(0, path.length - 'index.html'.length);
+  }
+  if (!path.endsWith('/')) {
+    path += '/';
+  }
+  return `${origin}${path}?article=${articleId}`;
+}
+
+// Dynamically update document title and head meta tags (OG & Twitter)
+function updateDocumentMetaTags(article) {
+  const title = article.socialShareTitle || article.seoTitle || article.title;
+  const fullTitle = `${title} | Dr. Anju Bathla Arora`;
+  const description = getArticleExcerpt(article);
+  const canonicalUrl = getArticleCanonicalUrl(article.id);
+  
+  let imageUrl = article.socialShareImage || article.image || 'assets/images/photo.jpeg';
+  if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('data:')) {
+    const origin = window.location.origin;
+    let path = window.location.pathname;
+    const lastSlash = path.lastIndexOf('/');
+    path = path.substring(0, lastSlash + 1);
+    imageUrl = `${origin}${path}${imageUrl.replace(/^\//, '')}`;
+  }
+
+  document.title = fullTitle;
+
+  const setMetaTag = (selector, attribute, attrVal, content) => {
+    let el = document.querySelector(selector);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attribute, attrVal);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  };
+
+  // Open Graph
+  setMetaTag('meta[property="og:title"]', 'property', 'og:title', title);
+  setMetaTag('meta[property="og:description"]', 'property', 'og:description', description);
+  setMetaTag('meta[property="og:image"]', 'property', 'og:image', imageUrl);
+  setMetaTag('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
+  setMetaTag('meta[property="og:type"]', 'property', 'og:type', 'article');
+  setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'Dr. Anju Bathla Arora');
+
+  // Twitter Card
+  setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+  setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', title);
+  setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', description);
+  setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', imageUrl);
+
+  // Canonical Link
+  let canonicalEl = document.querySelector('link[rel="canonical"]');
+  if (!canonicalEl) {
+    canonicalEl = document.createElement('link');
+    canonicalEl.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonicalEl);
+  }
+  canonicalEl.setAttribute('href', canonicalUrl);
+}
+
 // Setup social sharing
 function setupShareButtons(article) {
-  const shareUrl = window.location.origin + window.location.pathname + '#article/' + article.id;
+  const shareUrl = getArticleCanonicalUrl(article.id);
+  const excerpt = getArticleExcerpt(article);
+  const title = article.socialShareTitle || article.title;
+
   const encodedUrl = encodeURIComponent(shareUrl);
-  const encodedTitle = encodeURIComponent(article.title);
   
+  // Custom share text payloads
+  const whatsappPayload = `${title}\n\n${excerpt}\n\nRead More:\n${shareUrl}`;
+  const encodedWhatsapp = encodeURIComponent(whatsappPayload);
+
+  const xPayload = `${title}\n\n${excerpt}\n\nRead More:`;
+  const encodedX = encodeURIComponent(xPayload);
+
+  const telegramPayload = `${title}\n\n${excerpt}\n\nRead More:`;
+  const encodedTelegram = encodeURIComponent(telegramPayload);
+
   const bindShare = (selector, url) => {
     document.querySelectorAll(selector).forEach(btn => {
       btn.onclick = (e) => {
@@ -325,41 +432,44 @@ function setupShareButtons(article) {
   };
   
   bindShare('.btn-share-facebook', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
-  bindShare('.btn-share-whatsapp', `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`);
+  bindShare('.btn-share-whatsapp', `https://api.whatsapp.com/send?text=${encodedWhatsapp}`);
   bindShare('.btn-share-linkedin', `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`);
-  bindShare('.btn-share-x', `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`);
+  bindShare('.btn-share-x', `https://twitter.com/intent/tweet?text=${encodedX}&url=${encodedUrl}`);
+  bindShare('.btn-share-telegram', `https://t.me/share/url?url=${encodedUrl}&text=${encodedTelegram}`);
   
   document.querySelectorAll('.btn-share-copy').forEach(btn => {
     btn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
       navigator.clipboard.writeText(shareUrl).then(() => {
-        showToast('Link copied to clipboard!');
+        showToast('Article link copied to clipboard!');
       }).catch(err => {
         console.error('Failed to copy link: ', err);
       });
     };
   });
   
-  const copyAndRedirect = (selector, redirectUrl, platformName) => {
-    document.querySelectorAll(selector).forEach(btn => {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          showToast(`Link copied! Opening ${platformName}...`);
-          setTimeout(() => {
-            window.open(redirectUrl, '_blank', 'noopener,noreferrer');
-          }, 1000);
-        }).catch(() => {
-          window.open(redirectUrl, '_blank', 'noopener,noreferrer');
-        });
-      };
-    });
-  };
-  
-  copyAndRedirect('.btn-share-instagram', 'https://www.instagram.com', 'Instagram');
-  copyAndRedirect('.btn-share-medium', 'https://medium.com', 'Medium');
+  // Medium share handler (copies article link to clipboard)
+  document.querySelectorAll('.btn-share-medium').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast('Article link copied for Medium!');
+      }).catch(() => {});
+    };
+  });
+
+  // Instagram share handler (copies article link to clipboard)
+  document.querySelectorAll('.btn-share-instagram').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast('Article link copied! You can paste it into Instagram.');
+      }).catch(() => {});
+    };
+  });
 }
 
 // Setup Next / Previous buttons
@@ -1011,3 +1121,33 @@ function startTrackingSession() {
 
   window.addEventListener('beforeunload', updateCurrentPageViewDuration);
 }
+
+// Deep linking router for shared article URLs
+function checkInitialArticleRoute() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let articleId = urlParams.get('article') || urlParams.get('id');
+
+  if (!articleId && window.location.hash.startsWith('#article/')) {
+    articleId = window.location.hash.replace('#article/', '');
+  }
+
+  if (!articleId && window.location.pathname.includes('/article/')) {
+    const parts = window.location.pathname.split('/article/');
+    if (parts[1]) articleId = parts[1].replace(/\.html$/, '');
+  }
+
+  if (articleId) {
+    const published = typeof getPublishedArticles === 'function' ? getPublishedArticles() : DEFAULT_ARTICLES;
+    const art = published.find(a => a.id === articleId || a.id === 'seed-' + articleId || a.id.toLowerCase() === articleId.toLowerCase());
+    if (art && typeof openArticleModal === 'function') {
+      openArticleModal(art);
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkInitialArticleRoute);
+} else {
+  setTimeout(checkInitialArticleRoute, 100);
+}
+window.addEventListener('hashchange', checkInitialArticleRoute);

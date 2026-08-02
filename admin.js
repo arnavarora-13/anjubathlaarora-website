@@ -60,6 +60,13 @@ function getArticles() {
 // Save database
 function saveArticles(articles) {
   localStorage.setItem('arora_articles', JSON.stringify(articles));
+  try {
+    fetch('/api/articles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(articles)
+    }).catch(() => {});
+  } catch (e) {}
 }
 
 // Compute Statistics
@@ -409,10 +416,19 @@ function openEditorModal(id = null) {
   const previewContainer = document.getElementById('image-preview-container');
   const richEditor = document.getElementById('editor-content');
 
+  const seoTitleInput = document.getElementById('editor-seo-title');
+  const socialTitleInput = document.getElementById('editor-social-title');
+  const socialImageInput = document.getElementById('editor-social-image');
+  const socialDescInput = document.getElementById('editor-social-desc');
+
   // Reset inputs
   idInput.value = '';
   titleInput.value = '';
   categorySelect.value = 'Emotions';
+  if (seoTitleInput) seoTitleInput.value = '';
+  if (socialTitleInput) socialTitleInput.value = '';
+  if (socialImageInput) socialImageInput.value = '';
+  if (socialDescInput) socialDescInput.value = '';
   
   // Set date default to today at 7:00 AM (YYYY-MM-DDTHH:MM format)
   const today = new Date();
@@ -437,6 +453,10 @@ function openEditorModal(id = null) {
       idInput.value = art.id;
       titleInput.value = art.title || '';
       categorySelect.value = art.category || 'Emotions';
+      if (seoTitleInput) seoTitleInput.value = art.seoTitle || '';
+      if (socialTitleInput) socialTitleInput.value = art.socialShareTitle || '';
+      if (socialImageInput) socialImageInput.value = art.socialShareImage || '';
+      if (socialDescInput) socialDescInput.value = art.socialShareDescription || '';
       
       // Parse dates (supporting ISO scheduledAt, raw date strings, or timestamps)
       let dateVal = art.scheduledAt || art.date || art.timestamp;
@@ -501,6 +521,11 @@ function saveEditor(status = 'published') {
   const imagePreviewSrc = document.getElementById('editor-image-preview').src;
   const contentHtml = document.getElementById('editor-content').innerHTML;
 
+  const seoTitleVal = (document.getElementById('editor-seo-title')?.value || '').trim();
+  const socialTitleVal = (document.getElementById('editor-social-title')?.value || '').trim();
+  const socialImageVal = (document.getElementById('editor-social-image')?.value || '').trim();
+  const socialDescVal = (document.getElementById('editor-social-desc')?.value || '').trim();
+
   if (!titleVal || !contentHtml.replace(/<[^>]*>/g, '').trim()) {
     alert('Please fill out the article title and content.');
     return;
@@ -557,6 +582,10 @@ function saveEditor(status = 'published') {
         return {
           ...art,
           title: titleVal,
+          seoTitle: seoTitleVal,
+          socialShareTitle: socialTitleVal,
+          socialShareDescription: socialDescVal,
+          socialShareImage: socialImageVal || finalImage,
           category: categoryVal,
           date: formattedDate,
           readTime: readTimeText,
@@ -574,6 +603,10 @@ function saveEditor(status = 'published') {
     const newArt = {
       id: 'user-' + Date.now(),
       title: titleVal,
+      seoTitle: seoTitleVal,
+      socialShareTitle: socialTitleVal,
+      socialShareDescription: socialDescVal,
+      socialShareImage: socialImageVal || finalImage,
       author: 'Dr. Anju Arora',
       content: contentHtml,
       category: categoryVal,

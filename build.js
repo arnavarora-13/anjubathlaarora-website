@@ -75,6 +75,73 @@ try {
   }
   console.log(`Copied ${frameCount} ezgif-frame files.`);
 
+  // Copy articles.json if exists
+  if (fs.existsSync('articles.json')) {
+    fs.copyFileSync('articles.json', path.join('public', 'articles.json'));
+    console.log('Copied file: articles.json');
+  }
+
+  // Pre-render static article HTML files for static hosting social crawlers
+  const indexHtmlPath = path.join('public', 'index.html');
+  if (fs.existsSync(indexHtmlPath)) {
+    const indexHtmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
+    const articlesFile = fs.existsSync('articles.json') ? 'articles.json' : null;
+    let articlesList = [];
+    if (articlesFile) {
+      try { articlesList = JSON.parse(fs.readFileSync(articlesFile, 'utf8')); } catch (e) {}
+    }
+    if (!articlesList || articlesList.length === 0) {
+      articlesList = [
+        {
+          id: 'seed-1',
+          title: 'The Psychology of Market Volatility',
+          socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
+          socialShareDescription: 'Discover how emotional intelligence helps investors make better decisions, overcome market anxiety, and create long-term financial success.',
+          socialShareImage: 'assets/images/book2.jpeg',
+          content: 'Understanding how emotional intelligence impacts investment decisions...'
+        },
+        {
+          id: 'seed-2',
+          title: 'Defining Agility in Modern Workspaces',
+          socialShareTitle: 'Defining Agility in Modern Workspaces',
+          socialShareDescription: 'Explore the core mechanisms of emotional and organizational agility needed to navigate modern hybrid work environments effectively.',
+          socialShareImage: 'assets/images/photo.jpeg',
+          content: 'Organizational structures are rapidly evolving...'
+        },
+        {
+          id: 'seed-3',
+          title: 'Rekindling Purpose in Professional Life',
+          socialShareTitle: 'Rekindling Purpose in Professional Life',
+          socialShareDescription: 'A guide to finding meaningful work alignment, sustained resilience, and avoiding burnout through conscious reflection.',
+          socialShareImage: 'assets/images/book1.jpeg',
+          content: 'A guide to finding meaningful work alignment...'
+        }
+      ];
+    }
+
+    const articlePublicDir = path.join('public', 'article');
+    fs.mkdirSync(articlePublicDir, { recursive: true });
+
+    articlesList.forEach(art => {
+      const title = art.socialShareTitle || art.seoTitle || art.title;
+      const cleanText = (art.socialShareDescription || (art.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()).substring(0, 180);
+      const img = art.socialShareImage || art.image || 'assets/images/photo.jpeg';
+
+      let artHtml = indexHtmlContent
+        .replace(/<title>.*?<\/title>/i, `<title>${title} | Dr. Anju Bathla Arora</title>`)
+        .replace(/<meta property="og:title".*?>/i, `<meta property="og:title" content="${title}">`)
+        .replace(/<meta property="og:description".*?>/i, `<meta property="og:description" content="${cleanText}">`)
+        .replace(/<meta property="og:image".*?>/i, `<meta property="og:image" content="${img}">`)
+        .replace(/<meta property="og:url".*?>/i, `<meta property="og:url" content="?article=${art.id}">`)
+        .replace(/<meta name="twitter:title".*?>/i, `<meta name="twitter:title" content="${title}">`)
+        .replace(/<meta name="twitter:description".*?>/i, `<meta name="twitter:description" content="${cleanText}">`)
+        .replace(/<meta name="twitter:image".*?>/i, `<meta name="twitter:image" content="${img}">`);
+
+      fs.writeFileSync(path.join(articlePublicDir, `${art.id}.html`), artHtml, 'utf8');
+    });
+    console.log(`Pre-rendered ${articlesList.length} static article fallback HTML files in public/article/`);
+  }
+
   console.log('Build completed successfully!');
 } catch (error) {
   console.error('Build failed with error:', error);
