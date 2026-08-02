@@ -2,6 +2,23 @@
 // Admin Dashboard Logic
 // ==========================================
 
+// Helper: Normalize image URL so relative paths work from subroutes
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return '/assets/images/photo.jpeg';
+  const trimmed = url.trim();
+  if (!trimmed) return '/assets/images/photo.jpeg';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('./')) {
+    return '/' + trimmed.substring(2);
+  }
+  if (!trimmed.startsWith('/')) {
+    return '/' + trimmed;
+  }
+  return trimmed;
+}
+
 let activeTab = 'dashboard'; // 'dashboard', 'review', 'published', 'scheduled', 'analytics', 'settings'
 let prevActiveTab = 'dashboard';
 const ADMIN_PASSWORD = 'a1b2c3d4e5'; // Secure default password for local lock
@@ -275,12 +292,13 @@ function openReviewModal(id) {
   readtime.textContent = art.readTime || '3 min read';
   category.textContent = art.category || 'Research';
   
-  if (art.image) {
-    image.src = art.image;
-    imageWrapper.style.display = 'block';
-  } else {
-    imageWrapper.style.display = 'none';
-  }
+  const reviewImgSrc = normalizeImageUrl(art.image);
+  image.src = reviewImgSrc;
+  image.onerror = function() {
+    this.onerror = null;
+    this.src = '/assets/images/photo.jpeg';
+  };
+  imageWrapper.style.display = 'block';
 
   // Render HTML directly if rich text, otherwise split legacy text by double line breaks
   if (/<[a-z][\s\S]*>/i.test(art.content)) {
@@ -501,14 +519,22 @@ function openEditorModal(id = null) {
       readTimeInput.value = art.readTime || '';
       
       if (art.image) {
-        if (art.image.startsWith('data:image')) {
-          imagePreview.src = art.image;
-          previewContainer.style.display = 'block';
-        } else {
-          imageUrlInput.value = art.image;
-          imagePreview.src = art.image;
-          previewContainer.style.display = 'block';
+        const normImg = normalizeImageUrl(art.image);
+        imagePreview.src = normImg;
+        imagePreview.onerror = function() {
+          this.onerror = null;
+          this.src = '/assets/images/photo.jpeg';
+        };
+        previewContainer.style.display = 'block';
+        // Store original image value in hidden tracker so saveEditor() can retrieve it
+        const imageTrackerInput = document.getElementById('editor-image-stored-value');
+        if (imageTrackerInput) imageTrackerInput.value = normImg;
+        if (!normImg.startsWith('data:image')) {
+          imageUrlInput.value = normImg;
         }
+      } else {
+        const imageTrackerInput = document.getElementById('editor-image-stored-value');
+        if (imageTrackerInput) imageTrackerInput.value = '';
       }
       
       // Rich text loading
@@ -581,12 +607,21 @@ function saveEditor(status = 'published') {
     readTimeText = `${readMinutes} min read`;
   }
 
-  // Determine Image
-  let finalImage = 'assets/images/photo.jpeg'; // default fallback
-  if (imagePreviewSrc && imagePreviewSrc.startsWith('data:image')) {
+  // Determine Image — read from hidden tracker input to avoid picking up the page URL
+  // when imagePreview.src is empty (browsers return the page URL in that case)
+  const imageTrackerInput = document.getElementById('editor-image-stored-value');
+  const storedImageVal = imageTrackerInput ? imageTrackerInput.value.trim() : '';
+  let finalImage = '/assets/images/photo.jpeg'; // default fallback
+
+  if (storedImageVal && storedImageVal !== '' && !storedImageVal.includes('/admin')) {
+    // Best source: the hidden tracker holds the actual chosen image (data URL or path)
+    finalImage = storedImageVal.startsWith('data:') ? storedImageVal : normalizeImageUrl(storedImageVal);
+  } else if (imagePreviewSrc && imagePreviewSrc.startsWith('data:image')) {
+    // Fallback: data URI directly in img.src (shouldn't normally happen without tracker)
     finalImage = imagePreviewSrc;
   } else if (imageUrlVal) {
-    finalImage = imageUrlVal;
+    // Fallback: URL input text
+    finalImage = normalizeImageUrl(imageUrlVal);
   }
 
   let db = getArticles();
@@ -1551,6 +1586,7 @@ function setupLivePreview() {
     if (!imageSrc || imageSrc.endsWith('admin.html')) {
       imageSrc = document.getElementById('editor-image-url').value.trim();
     }
+    const normSrc = normalizeImageUrl(imageSrc);
 
     const todayStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -1560,7 +1596,7 @@ function setupLivePreview() {
         <h1 class="article-reader-title" style="margin-top: 1rem; font-size: 2.4rem;">${titleVal}</h1>
         
         <div class="article-reader-meta">
-          <img src="assets/images/photo.jpeg" class="article-reader-avatar" alt="Avatar">
+          <img src="/assets/images/photo.jpeg" class="article-reader-avatar" alt="Avatar">
           <div class="article-reader-meta-info">
             <span class="article-reader-author">Dr. Anju Arora</span>
             <div class="article-reader-details">
@@ -1571,7 +1607,7 @@ function setupLivePreview() {
           </div>
         </div>
 
-        ${imageSrc ? `<div class="article-reader-featured-image-wrapper"><img src="${imageSrc}" class="article-reader-featured-image" alt="Preview"></div>` : ''}
+        ${normSrc ? `<div class="article-reader-featured-image-wrapper"><img src="${normSrc}" class="article-reader-featured-image" alt="Preview" onerror="this.onerror=null; this.src='/assets/images/photo.jpeg';"></div>` : ''}
 
         <div class="article-reader-content">
           ${contentHtml}
@@ -1616,16 +1652,21 @@ function setupImageUploading() {
   const previewContainer = document.getElementById('image-preview-container');
   const dragZone = document.getElementById('editor-drag-drop-zone');
   const richEditor = document.getElementById('editor-content');
+  const imageTracker = document.getElementById('editor-image-stored-value');
 
   imageUrlInput.addEventListener('input', () => {
     const val = imageUrlInput.value.trim();
     if (val) {
       imagePreview.src = val;
+      imagePreview.onerror = function() { this.onerror=null; this.src='/assets/images/photo.jpeg'; };
       previewContainer.style.display = 'block';
       imageFileInput.value = '';
+      // Update tracker with the typed URL
+      if (imageTracker) imageTracker.value = val;
     } else {
       previewContainer.style.display = 'none';
       imagePreview.src = '';
+      if (imageTracker) imageTracker.value = '';
     }
     triggerAutoSave();
   });
@@ -1634,9 +1675,12 @@ function setupImageUploading() {
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        imagePreview.src = e.target.result;
+        const dataUrl = e.target.result;
+        imagePreview.src = dataUrl;
         previewContainer.style.display = 'block';
         imageUrlInput.value = '';
+        // Store data URL in tracker — this is what saveEditor() will use
+        if (imageTracker) imageTracker.value = dataUrl;
         triggerAutoSave();
       };
       reader.readAsDataURL(file);

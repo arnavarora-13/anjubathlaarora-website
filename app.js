@@ -15,6 +15,23 @@ function slugify(text) {
     .replace(/-+$/, '');
 }
 
+// Helper: Normalize image URL so relative paths work from subroutes (e.g., /articles/slug)
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return '/assets/images/photo.jpeg';
+  const trimmed = url.trim();
+  if (!trimmed) return '/assets/images/photo.jpeg';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('./')) {
+    return '/' + trimmed.substring(2);
+  }
+  if (!trimmed.startsWith('/')) {
+    return '/' + trimmed;
+  }
+  return trimmed;
+}
+
 // ==========================================
 // Initial Seed Data (Articles)
 // ==========================================
@@ -26,7 +43,7 @@ const DEFAULT_ARTICLES = [
     seoTitle: 'The Psychology of Market Volatility | Dr. Anju Bathla Arora',
     socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
     socialShareDescription: 'Discover how emotional intelligence helps investors make better decisions, overcome market anxiety, and create long-term financial success.',
-    socialShareImage: 'assets/images/book2.jpeg',
+    socialShareImage: '/assets/images/book2.jpeg',
     author: 'Dr. Anju Arora',
     content: `Understanding how emotional intelligence impacts investment decisions during economic downturns is crucial for long-term financial success. Market volatility is not just a mathematical representation of risk; it is a direct reflection of human psychology. 
 
@@ -37,7 +54,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
     date: 'July 15, 2026',
     readTime: '5 min read',
     status: 'published',
-    image: 'assets/images/book2.jpeg',
+    image: '/assets/images/book2.jpeg',
     isDefault: true
   },
   {
@@ -47,7 +64,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
     seoTitle: 'Defining Agility in Modern Workspaces | Dr. Anju Bathla Arora',
     socialShareTitle: 'Defining Agility in Modern Workspaces',
     socialShareDescription: 'Explore the core mechanisms of emotional and organizational agility needed to navigate modern hybrid work environments effectively.',
-    socialShareImage: 'assets/images/photo.jpeg',
+    socialShareImage: '/assets/images/photo.jpeg',
     author: 'Dr. Anju Arora',
     content: `Organizational structures are rapidly evolving to accommodate remote-first and hybrid collaboration models. In the book Agilent, I discuss the core mechanisms of emotional and organizational agility. 
 
@@ -58,7 +75,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
     date: 'June 28, 2026',
     readTime: '8 min read',
     status: 'published',
-    image: 'assets/images/photo.jpeg',
+    image: '/assets/images/photo.jpeg',
     isDefault: true
   },
   {
@@ -68,7 +85,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
     seoTitle: 'Rekindling Purpose in Professional Life | Dr. Anju Bathla Arora',
     socialShareTitle: 'Rekindling Purpose in Professional Life',
     socialShareDescription: 'A guide to finding meaningful work alignment, sustained resilience, and avoiding burnout through conscious reflection.',
-    socialShareImage: 'assets/images/book1.jpeg',
+    socialShareImage: '/assets/images/book1.jpeg',
     author: 'Dr. Anju Arora',
     content: `A guide to finding meaningful work alignment and avoiding burnout through conscious reflection. In Rekindled Life, I reflect on returning to life after near-death experiences and finding appreciation for every moment.
 
@@ -79,7 +96,7 @@ Rekindling your professional life starts with gratitude and introspection. We mu
     date: 'May 12, 2026',
     readTime: '6 min read',
     status: 'published',
-    image: 'assets/images/book1.jpeg',
+    image: '/assets/images/book1.jpeg',
     isDefault: true
   }
 ];
@@ -104,14 +121,17 @@ function initializeDatabase() {
         }
         
         // Ensure default image and correct legacy assignments
-        if (art.id === 'seed-3' && (art.image === 'assets/images/book3.jpeg' || !art.image)) {
-          art.image = 'assets/images/book1.jpeg';
+        const normImg = normalizeImageUrl(art.image);
+        if (normImg !== art.image) {
+          art.image = normImg;
           updated = true;
-        } else if (!art.image) {
-          if (art.id === 'seed-1') art.image = 'assets/images/book2.jpeg';
-          else if (art.id === 'seed-2') art.image = 'assets/images/photo.jpeg';
-          else art.image = 'assets/images/photo.jpeg';
-          updated = true;
+        }
+        if (art.socialShareImage) {
+          const normSocial = normalizeImageUrl(art.socialShareImage);
+          if (normSocial !== art.socialShareImage) {
+            art.socialShareImage = normSocial;
+            updated = true;
+          }
         }
         
         // Migrate categories to exactly three
@@ -202,6 +222,40 @@ function checkAndPublishScheduled() {
 
 let activeFilterCategory = null;
 
+
+// Sync articles from server (articles.json) into localStorage.
+// This ensures users on new browsers/devices see the same articles that were
+// published via the admin panel (which saves to the server's articles.json).
+function syncArticlesFromServer() {
+  fetch('/api/articles')
+    .then(res => res.ok ? res.json() : null)
+    .then(serverArticles => {
+      if (!serverArticles || !Array.isArray(serverArticles) || serverArticles.length === 0) return;
+
+      // Merge: keep local articles that don't exist on the server (new local drafts, etc.)
+      // Server articles (published) take precedence to ensure images are always correct.
+      let localArticles = [];
+      try {
+        localArticles = JSON.parse(localStorage.getItem('arora_articles')) || [];
+      } catch (e) {
+        localArticles = [];
+      }
+
+      const serverIds = new Set(serverArticles.map(a => a.id));
+      // Add locally-only articles (pending submissions, local drafts) to the merged set
+      const localOnly = localArticles.filter(a => !serverIds.has(a.id));
+      const merged = [...serverArticles, ...localOnly];
+
+      localStorage.setItem('arora_articles', JSON.stringify(merged));
+
+      // Re-render articles to show the synced content
+      renderArticles();
+    })
+    .catch(() => {
+      // Server unavailable (static hosting without server.js) — use localStorage as-is
+    });
+}
+
 // Get published articles from localStorage with fallback to seed data
 function getPublishedArticles() {
   initializeDatabase();
@@ -255,10 +309,11 @@ function renderArticles() {
     // Strip HTML tags for clean card preview snippet
     const cleanPreview = (article.content || '').replace(/<[^>]*>/g, '').substring(0, 180);
     const targetIdOrSlug = article.slug || article.id;
+    const cardImg = normalizeImageUrl(article.image);
     
     card.innerHTML = `
       <div class="article-card-image-wrapper">
-        <img src="${article.image || 'assets/images/photo.jpeg'}" alt="${article.title}" class="article-card-image" loading="lazy">
+        <img src="${cardImg}" alt="${article.title}" class="article-card-image" loading="lazy" onerror="this.onerror=null; this.src='/assets/images/photo.jpeg';">
       </div>
       <div class="article-meta">
         <span class="article-category">${article.category || 'Research'}</span>
@@ -388,12 +443,13 @@ function renderArticleModalContent(article) {
   readtime.textContent = article.readTime || '3 min read';
   category.textContent = article.category || 'Research';
   
-  if (article.image) {
-    image.src = article.image;
-    imageWrapper.style.display = 'block';
-  } else {
-    imageWrapper.style.display = 'none';
-  }
+  const modalImgSrc = normalizeImageUrl(article.image);
+  image.onerror = function() {
+    this.onerror = null;
+    this.src = '/assets/images/photo.jpeg';
+  };
+  image.src = modalImgSrc;
+  imageWrapper.style.display = 'block';
 
   // Support both rich text HTML content and legacy double line break paragraph splitting
   if (/<[a-z][\s\S]*>/i.test(article.content)) {
@@ -478,13 +534,10 @@ function updateDocumentMetaTags(article) {
   const description = getArticleExcerpt(article);
   const canonicalUrl = getArticleCanonicalUrl(article);
   
-  let imageUrl = article.socialShareImage || article.image || 'assets/images/photo.jpeg';
+  let imageUrl = normalizeImageUrl(article.socialShareImage || article.image);
   if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('data:')) {
     const origin = window.location.origin;
-    let path = window.location.pathname;
-    const lastSlash = path.lastIndexOf('/');
-    path = path.substring(0, lastSlash + 1);
-    imageUrl = `${origin}${path}${imageUrl.replace(/^\//, '')}`;
+    imageUrl = `${origin}${imageUrl}`;
   }
 
   document.title = fullTitle;
@@ -671,9 +724,10 @@ function setupRelatedArticles(currentArticle) {
     card.style.padding = '1.5rem';
     card.style.cursor = 'pointer';
     
+    const relImg = normalizeImageUrl(art.image);
     card.innerHTML = `
       <div class="article-card-image-wrapper" style="aspect-ratio: 16/10; margin-bottom: 1rem;">
-        <img src="${art.image || 'assets/images/photo.jpeg'}" alt="${art.title}" class="article-card-image" loading="lazy">
+        <img src="${relImg}" alt="${art.title}" class="article-card-image" loading="lazy" onerror="this.onerror=null; this.src='/assets/images/photo.jpeg';">
       </div>
       <div class="article-meta" style="margin-bottom: 0.75rem; font-size: 0.7rem;">
         <span class="article-category">${art.category}</span>
@@ -871,11 +925,11 @@ function setupVisitorSubmissionModal() {
     const readTimeText = `${readMinutes} min read`;
 
     // Featured Image
-    let finalImage = 'assets/images/photo.jpeg'; // default fallback
+    let finalImage = '/assets/images/photo.jpeg'; // default fallback
     if (imagePreviewSrc && imagePreviewSrc.startsWith('data:image')) {
       finalImage = imagePreviewSrc;
     } else if (imageUrlInput.value.trim()) {
-      finalImage = imageUrlInput.value.trim();
+      finalImage = normalizeImageUrl(imageUrlInput.value.trim());
     }
 
     // Format current date
@@ -990,6 +1044,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setupVisitorSubmissionModal();
   setupCategoryFiltering();
   startTrackingSession();
+
+  // Sync articles from server to pick up any admin-published articles with correct images
+  // This runs after the initial render so the page is fast, then updates if server has data
+  syncArticlesFromServer();
 
   // History and hash routing triggers
   window.addEventListener('popstate', handleRoute);

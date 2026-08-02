@@ -17,6 +17,22 @@ function slugify(text) {
     .replace(/-+$/, '');
 }
 
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return '/assets/images/photo.jpeg';
+  const trimmed = url.trim();
+  if (!trimmed) return '/assets/images/photo.jpeg';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('./')) {
+    return '/' + trimmed.substring(2);
+  }
+  if (!trimmed.startsWith('/')) {
+    return '/' + trimmed;
+  }
+  return trimmed;
+}
+
 const DEFAULT_ARTICLES = [
   {
     id: 'seed-1',
@@ -25,7 +41,7 @@ const DEFAULT_ARTICLES = [
     seoTitle: 'The Psychology of Market Volatility | Dr. Anju Bathla Arora',
     socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
     socialShareDescription: 'Discover how emotional intelligence helps investors make better decisions, overcome market anxiety, and create long-term financial success.',
-    socialShareImage: 'assets/images/book2.jpeg',
+    socialShareImage: '/assets/images/book2.jpeg',
     author: 'Dr. Anju Arora',
     content: `Understanding how emotional intelligence impacts investment decisions during economic downturns is crucial for long-term financial success. Market volatility is not just a mathematical representation of risk; it is a direct reflection of human psychology. 
 
@@ -36,7 +52,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
     date: 'July 15, 2026',
     readTime: '5 min read',
     status: 'published',
-    image: 'assets/images/book2.jpeg'
+    image: '/assets/images/book2.jpeg'
   },
   {
     id: 'seed-2',
@@ -45,7 +61,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
     seoTitle: 'Defining Agility in Modern Workspaces | Dr. Anju Bathla Arora',
     socialShareTitle: 'Defining Agility in Modern Workspaces',
     socialShareDescription: 'Explore the core mechanisms of emotional and organizational agility needed to navigate modern hybrid work environments effectively.',
-    socialShareImage: 'assets/images/photo.jpeg',
+    socialShareImage: '/assets/images/photo.jpeg',
     author: 'Dr. Anju Arora',
     content: `Organizational structures are rapidly evolving to accommodate remote-first and hybrid collaboration models. In the book Agilent, I discuss the core mechanisms of emotional and organizational agility. 
 
@@ -56,7 +72,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
     date: 'June 28, 2026',
     readTime: '8 min read',
     status: 'published',
-    image: 'assets/images/photo.jpeg'
+    image: '/assets/images/photo.jpeg'
   },
   {
     id: 'seed-3',
@@ -65,7 +81,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
     seoTitle: 'Rekindling Purpose in Professional Life | Dr. Anju Bathla Arora',
     socialShareTitle: 'Rekindling Purpose in Professional Life',
     socialShareDescription: 'A guide to finding meaningful work alignment, sustained resilience, and avoiding burnout through conscious reflection.',
-    socialShareImage: 'assets/images/book1.jpeg',
+    socialShareImage: '/assets/images/book1.jpeg',
     author: 'Dr. Anju Arora',
     content: `A guide to finding meaningful work alignment and avoiding burnout through conscious reflection. In Rekindled Life, I reflect on returning to life after near-death experiences and finding appreciation for every moment.
 
@@ -76,7 +92,7 @@ Rekindling your professional life starts with gratitude and introspection. We mu
     date: 'May 12, 2026',
     readTime: '6 min read',
     status: 'published',
-    image: 'assets/images/book1.jpeg'
+    image: '/assets/images/book1.jpeg'
   }
 ];
 
@@ -128,9 +144,9 @@ function injectOGMetadata(html, article, host, protocol) {
   const articleSlug = article.slug || slugify(article.title) || article.id;
   const canonicalUrl = `${protocol}://${host}/articles/${articleSlug}`;
 
-  let image = article.socialShareImage || article.image || 'assets/images/photo.jpeg';
-  if (!image.startsWith('http://') && !image.startsWith('https://')) {
-    image = `${protocol}://${host}/${image.replace(/^\//, '')}`;
+  let image = normalizeImageUrl(article.socialShareImage || article.image);
+  if (!image.startsWith('http://') && !image.startsWith('https://') && !image.startsWith('data:')) {
+    image = `${protocol}://${host}${image}`;
   }
 
   let updatedHtml = html;

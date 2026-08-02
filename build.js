@@ -132,11 +132,28 @@ try {
     fs.mkdirSync(articlesPublicDir, { recursive: true });
     fs.mkdirSync(articlePublicDir, { recursive: true });
 
+    const normalizeImageUrl = (url) => {
+      if (!url || typeof url !== 'string') return '/assets/images/photo.jpeg';
+      const trimmed = url.trim();
+      if (!trimmed) return '/assets/images/photo.jpeg';
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('./')) {
+        return '/' + trimmed.substring(2);
+      }
+      if (!trimmed.startsWith('/')) {
+        return '/' + trimmed;
+      }
+      return trimmed;
+    };
+
     articlesList.forEach(art => {
       const slug = art.slug || slugifyBuild(art.title) || art.id;
       const title = art.socialShareTitle || art.seoTitle || art.title;
       const cleanText = (art.socialShareDescription || (art.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()).substring(0, 180);
-      const img = art.socialShareImage || art.image || 'assets/images/photo.jpeg';
+      const rawImg = art.socialShareImage || art.image;
+      const img = normalizeImageUrl(rawImg);
       const canonicalUrl = `/articles/${slug}`;
 
       let artHtml = indexHtmlContent
