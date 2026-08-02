@@ -140,6 +140,25 @@ function initializeDatabase() {
             updated = true;
           }
         }
+
+        // Migrate slugs
+        if (art.id === 'seed-1' && art.slug !== 'exhilarating-magic-of-stock-markets') {
+          art.slug = 'exhilarating-magic-of-stock-markets';
+          art.url = '/articles/exhilarating-magic-of-stock-markets';
+          updated = true;
+        } else if (art.id === 'seed-2' && art.slug !== 'agilent-the-fast-and-focused') {
+          art.slug = 'agilent-the-fast-and-focused';
+          art.url = '/articles/agilent-the-fast-and-focused';
+          updated = true;
+        } else if (art.id === 'seed-3' && art.slug !== 'rekindled-life') {
+          art.slug = 'rekindled-life';
+          art.url = '/articles/rekindled-life';
+          updated = true;
+        } else if (!art.slug && art.title) {
+          art.slug = slugify(art.title);
+          art.url = '/articles/' + art.slug;
+          updated = true;
+        }
         
         if (updated) migrated = true;
         return art;
@@ -183,11 +202,21 @@ function checkAndPublishScheduled() {
 
 let activeFilterCategory = null;
 
-// Get published articles from localStorage
+// Get published articles from localStorage with fallback to seed data
 function getPublishedArticles() {
+  initializeDatabase();
   checkAndPublishScheduled();
-  const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
-  return articles.filter(art => art.status === 'published');
+  let articles = [];
+  try {
+    articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
+  } catch (e) {
+    articles = [];
+  }
+  if (!articles || articles.length === 0) {
+    articles = DEFAULT_ARTICLES;
+  }
+  const published = articles.filter(art => art.status === 'published');
+  return published.length > 0 ? published : DEFAULT_ARTICLES;
 }
 
 // ==========================================
@@ -225,6 +254,7 @@ function renderArticles() {
     
     // Strip HTML tags for clean card preview snippet
     const cleanPreview = (article.content || '').replace(/<[^>]*>/g, '').substring(0, 180);
+    const targetIdOrSlug = article.slug || article.id;
     
     card.innerHTML = `
       <div class="article-card-image-wrapper">
@@ -238,7 +268,7 @@ function renderArticles() {
       <p class="article-preview">${cleanPreview}...</p>
       <div class="article-footer">
         <span class="article-author">By ${article.author || 'Dr. Anju Arora'}</span>
-        <button class="btn-text" data-id="${article.id}">
+        <button class="btn-text" data-id="${targetIdOrSlug}">
           Read More <span style="font-size: 1.1rem; margin-left: 2px;">→</span>
         </button>
       </div>
@@ -252,25 +282,91 @@ function renderArticles() {
   // Add Event Listeners for Read More buttons
   document.querySelectorAll('.btn-text').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const id = e.currentTarget.getAttribute('data-id');
-      openArticleModal(id);
+      e.preventDefault();
+      e.stopPropagation();
+      const target = e.currentTarget.getAttribute('data-id');
+      openArticleModal(target);
     });
   });
 }
 
-// Open Full Article Modal (Updates hash for routing)
-function openArticleModal(id) {
-  window.location.hash = 'article/' + id;
+// Open Full Article Modal (Updates HTML5 History API route and renders content)
+function openArticleModal(target, updateUrl = true) {
+  if (!target) return;
+  const published = getPublishedArticles();
+  const rawTarget = typeof target === 'object' ? (target.slug || target.id) : String(target);
+  const cleanTarget = decodeURIComponent(rawTarget).toLowerCase().trim().replace(/^#?article\//, '').replace(/\.html$/, '').replace(/\/$/, '');
+
+  const article = published.find(art => 
+    (art.slug && art.slug.toLowerCase() === cleanTarget) ||
+    (art.title && slugify(art.title) === cleanTarget) ||
+    art.id.toLowerCase() === cleanTarget ||
+    art.id.toLowerCase() === 'seed-' + cleanTarget
+  );
+
+  if (!article) {
+    console.warn('Article not found for target:', cleanTarget);
+    return;
+  }
+
+  const slug = article.slug || slugify(article.title) || article.id;
+  const canonicalUrl = getArticleCanonicalUrl(article);
+
+  // Update browser URL using History API if requested
+  if (updateUrl) {
+    const targetPath = `/articles/${slug}`;
+    if (window.location.pathname !== targetPath) {
+      try {
+        history.pushState({ articleSlug: slug }, '', canonicalUrl);
+      } catch (e) {
+        console.warn('Unable to push history state:', e);
+      }
+    }
+  }
+
+  renderArticleModalContent(article);
+}
+
+// Close Full Article Modal and restore home URL
+function closeArticleModal(updateUrl = true) {
+  const modal = document.getElementById('article-view-modal');
+  if (modal && modal.classList.contains('open')) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    document.title = 'Dr. Anju Bathla Arora | Executive & Mindset Coach';
+
+    if (updateUrl && (window.location.pathname.includes('/articles/') || window.location.pathname.includes('/article/'))) {
+      const origin = window.location.origin;
+      let path = window.location.pathname;
+      if (path.includes('/articles/')) {
+        path = path.substring(0, path.indexOf('/articles/')) + '/';
+      } else if (path.includes('/article/')) {
+        path = path.substring(0, path.indexOf('/article/')) + '/';
+      }
+      if (!path.endsWith('/')) path += '/';
+      const homeUrl = origin + path;
+      try {
+        history.pushState({ page: 'home' }, '', homeUrl);
+      } catch (e) {
+        console.warn('Unable to push history state:', e);
+      }
+    }
+
+    if (window.location.hash) {
+      try {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch (e) {}
+    }
+
+    if (typeof recordPageView === 'function') {
+      recordPageView('Home');
+    }
+  }
 }
 
 // Renders the article in Medium-style viewer
-function renderArticleModalContent(id) {
-  const articles = JSON.parse(localStorage.getItem('arora_articles')) || [];
-  const article = articles.find(art => art.id === id);
-  if (!article) {
-    window.location.hash = '';
-    return;
-  }
+function renderArticleModalContent(article) {
+  if (!article) return;
 
   const modal = document.getElementById('article-view-modal');
   const title = document.getElementById('modal-view-title');
@@ -497,7 +593,7 @@ function setupShareButtons(article) {
 }
 
 // Setup Next / Previous buttons
-function setupArticleNavigation(id) {
+function setupArticleNavigation(targetIdOrSlug) {
   const published = getPublishedArticles();
   
   // Sort articles - newest first
@@ -507,7 +603,11 @@ function setupArticleNavigation(id) {
     return b.timestamp - a.timestamp;
   });
 
-  const currentIndex = published.findIndex(art => art.id === id);
+  const cleanTarget = String(targetIdOrSlug).toLowerCase().trim();
+  const currentIndex = published.findIndex(art => 
+    art.id.toLowerCase() === cleanTarget || 
+    (art.slug && art.slug.toLowerCase() === cleanTarget)
+  );
   const prevBtn = document.getElementById('nav-prev-article');
   const prevTitle = document.getElementById('nav-prev-title');
   
@@ -517,7 +617,7 @@ function setupArticleNavigation(id) {
     prevTitle.textContent = prevArt.title;
     prevBtn.onclick = (e) => {
       e.stopPropagation();
-      openArticleModal(prevArt.id);
+      openArticleModal(prevArt);
     };
   } else {
     prevBtn.style.visibility = 'hidden';
@@ -532,7 +632,7 @@ function setupArticleNavigation(id) {
     nextTitle.textContent = nextArt.title;
     nextBtn.onclick = (e) => {
       e.stopPropagation();
-      openArticleModal(nextArt.id);
+      openArticleModal(nextArt);
     };
   } else {
     nextBtn.style.visibility = 'hidden';
@@ -591,24 +691,35 @@ function setupRelatedArticles(currentArticle) {
   });
 }
 
-// Router hash change handler
-function handleHashChange() {
-  const hash = window.location.hash;
-  const match = hash.match(/^#?article\/(.+)$/);
-  
-  const modal = document.getElementById('article-view-modal');
-  if (match) {
-    const articleId = match[1];
-    renderArticleModalContent(articleId);
-  } else {
-    if (modal && modal.classList.contains('open')) {
-      modal.classList.remove('open');
-      document.body.style.overflow = '';
-      if (typeof recordPageView === 'function') {
-        recordPageView('Home');
-      }
+// Router URL and popstate handler
+function handleRoute() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let targetSlug = urlParams.get('article') || urlParams.get('id');
+  const pathname = window.location.pathname;
+
+  if (!targetSlug && pathname.includes('/articles/')) {
+    const parts = pathname.split('/articles/');
+    if (parts[1]) {
+      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
     }
+  } else if (!targetSlug && pathname.includes('/article/')) {
+    const parts = pathname.split('/article/');
+    if (parts[1]) {
+      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
+    }
+  } else if (!targetSlug && window.location.hash.startsWith('#article/')) {
+    targetSlug = window.location.hash.replace('#article/', '');
   }
+
+  if (targetSlug) {
+    openArticleModal(targetSlug, false);
+  } else {
+    closeArticleModal(false);
+  }
+}
+
+function handleHashChange() {
+  handleRoute();
 }
 
 // ==========================================
@@ -634,8 +745,6 @@ function setupScrollReveal() {
   reveals.forEach(el => observer.observe(el));
 }
 
-
-
 // ==========================================
 // Modal Event Listeners
 // ==========================================
@@ -646,7 +755,7 @@ function setupModalHandlers() {
       if (e.target === overlay) {
         const wasOpen = overlay.classList.contains('open');
         if (wasOpen && overlay.id === 'article-view-modal') {
-          window.location.hash = ''; // triggers hashchange which closes modal
+          closeArticleModal(true);
         } else {
           overlay.classList.remove('open');
           document.body.style.overflow = '';
@@ -659,7 +768,7 @@ function setupModalHandlers() {
   const closeViewModal = document.getElementById('view-modal-close');
   if (closeViewModal) {
     closeViewModal.addEventListener('click', () => {
-      window.location.hash = ''; // triggers hashchange which closes modal
+      closeArticleModal(true);
     });
   }
 
@@ -882,9 +991,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCategoryFiltering();
   startTrackingSession();
 
-  // Hash routing triggers
-  window.addEventListener('hashchange', handleHashChange);
-  handleHashChange(); // check initial hash on load
+  // History and hash routing triggers
+  window.addEventListener('popstate', handleRoute);
+  window.addEventListener('hashchange', handleRoute);
+  handleRoute(); // check initial route on load
 });
 
 // ==========================================
@@ -1147,43 +1257,10 @@ function startTrackingSession() {
 }
 
 // Deep linking router for shared article URLs (/articles/{slug})
-function checkInitialArticleRoute() {
-  const urlParams = new URLSearchParams(window.location.search);
-  let targetSlug = urlParams.get('article') || urlParams.get('id');
-  const pathname = window.location.pathname;
-
-  if (!targetSlug && pathname.includes('/articles/')) {
-    const parts = pathname.split('/articles/');
-    if (parts[1]) {
-      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
-    }
-  } else if (!targetSlug && pathname.includes('/article/')) {
-    const parts = pathname.split('/article/');
-    if (parts[1]) {
-      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
-    }
-  } else if (!targetSlug && window.location.hash.startsWith('#article/')) {
-    targetSlug = window.location.hash.replace('#article/', '');
-  }
-
-  if (targetSlug) {
-    const published = typeof getPublishedArticles === 'function' ? getPublishedArticles() : DEFAULT_ARTICLES;
-    const cleanTarget = targetSlug.toLowerCase().trim();
-    const art = published.find(a => 
-      (a.slug && a.slug.toLowerCase() === cleanTarget) ||
-      (a.title && slugify(a.title) === cleanTarget) ||
-      a.id === cleanTarget ||
-      a.id === 'seed-' + cleanTarget
-    );
-    if (art && typeof openArticleModal === 'function') {
-      openArticleModal(art);
-    }
-  }
-}
-
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', checkInitialArticleRoute);
+  document.addEventListener('DOMContentLoaded', handleRoute);
 } else {
-  setTimeout(checkInitialArticleRoute, 100);
+  setTimeout(handleRoute, 100);
 }
-window.addEventListener('hashchange', checkInitialArticleRoute);
+window.addEventListener('popstate', handleRoute);
+window.addEventListener('hashchange', handleRoute);

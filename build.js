@@ -162,6 +162,10 @@ try {
       fs.writeFileSync(path.join(articlePublicDir, `${art.id}.html`), artHtml, 'utf8');
     });
     console.log(`Pre-rendered ${articlesList.length} static article fallback HTML files in public/articles/`);
+
+    // Write public/404.html for GitHub Pages / Netlify / Vercel SPA routing fallback
+    fs.writeFileSync(path.join('public', '404.html'), indexHtmlContent, 'utf8');
+    console.log('Created public/404.html SPA router fallback');
   }
 
   console.log('Build completed successfully!');
