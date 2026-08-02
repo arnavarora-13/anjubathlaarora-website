@@ -4,9 +4,23 @@ const path = require('path');
 
 const PORT = process.env.PORT || 8000;
 
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
+
 const DEFAULT_ARTICLES = [
   {
     id: 'seed-1',
+    slug: 'exhilarating-magic-of-stock-markets',
     title: 'The Psychology of Market Volatility',
     seoTitle: 'The Psychology of Market Volatility | Dr. Anju Bathla Arora',
     socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
@@ -26,6 +40,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
   },
   {
     id: 'seed-2',
+    slug: 'agilent-the-fast-and-focused',
     title: 'Defining Agility in Modern Workspaces',
     seoTitle: 'Defining Agility in Modern Workspaces | Dr. Anju Bathla Arora',
     socialShareTitle: 'Defining Agility in Modern Workspaces',
@@ -45,6 +60,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
   },
   {
     id: 'seed-3',
+    slug: 'rekindled-life',
     title: 'Rekindling Purpose in Professional Life',
     seoTitle: 'Rekindling Purpose in Professional Life | Dr. Anju Bathla Arora',
     socialShareTitle: 'Rekindling Purpose in Professional Life',
@@ -109,7 +125,8 @@ function getExcerpt(content) {
 function injectOGMetadata(html, article, host, protocol) {
   const title = article.socialShareTitle || article.seoTitle || article.title;
   const description = article.socialShareDescription || getExcerpt(article.content);
-  const canonicalUrl = `${protocol}://${host}/?article=${article.id}`;
+  const articleSlug = article.slug || slugify(article.title) || article.id;
+  const canonicalUrl = `${protocol}://${host}/articles/${articleSlug}`;
 
   let image = article.socialShareImage || article.image || 'assets/images/photo.jpeg';
   if (!image.startsWith('http://') && !image.startsWith('https://')) {
@@ -185,14 +202,16 @@ const server = http.createServer((req, res) => {
   // URL parsing
   const parsedUrl = new URL(req.url, `${protocol}://${host}`);
   const urlPath = parsedUrl.pathname;
-  let articleId = parsedUrl.searchParams.get('article') || parsedUrl.searchParams.get('id');
+  let articleTarget = parsedUrl.searchParams.get('article') || parsedUrl.searchParams.get('id');
 
-  // Handle /article/:id path routing
-  if (!articleId && urlPath.startsWith('/article/')) {
-    articleId = urlPath.replace('/article/', '').replace(/\.html$/, '');
+  // Handle /articles/:slug or /article/:slug path routing
+  if (!articleTarget && urlPath.startsWith('/articles/')) {
+    articleTarget = urlPath.replace('/articles/', '').replace(/\.html$/, '').replace(/\/$/, '');
+  } else if (!articleTarget && urlPath.startsWith('/article/')) {
+    articleTarget = urlPath.replace('/article/', '').replace(/\.html$/, '').replace(/\/$/, '');
   }
 
-  let filePath = (urlPath === '/' || urlPath === '' || urlPath.startsWith('/article/')) ? './index.html' : '.' + urlPath;
+  let filePath = (urlPath === '/' || urlPath === '' || urlPath.startsWith('/articles/') || urlPath.startsWith('/article/')) ? './index.html' : '.' + urlPath;
   const resolvedPath = path.resolve(filePath);
   const rootPath = path.resolve('.');
   
@@ -205,8 +224,8 @@ const server = http.createServer((req, res) => {
   const ext = path.extname(resolvedPath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  if (ext === '.html' || ext === '') {
-    const htmlFileToRead = ext === '' ? resolvedPath + '.html' : resolvedPath;
+  if (ext === '.html' || ext === '' || urlPath.startsWith('/articles/') || urlPath.startsWith('/article/')) {
+    const htmlFileToRead = (ext === '' || urlPath.startsWith('/articles/') || urlPath.startsWith('/article/')) ? './index.html' : resolvedPath;
     fs.readFile(htmlFileToRead, 'utf8', (err, content) => {
       if (err) {
         if (err.code === 'ENOENT') {
@@ -219,9 +238,15 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      if (articleId) {
+      if (articleTarget) {
         const articles = getArticles();
-        const art = articles.find(a => a.id === articleId || a.id === 'seed-' + articleId || a.id.toLowerCase() === articleId.toLowerCase());
+        const cleanTarget = articleTarget.toLowerCase().trim();
+        const art = articles.find(a => 
+          (a.slug && a.slug.toLowerCase() === cleanTarget) ||
+          (a.title && slugify(a.title) === cleanTarget) ||
+          a.id === cleanTarget ||
+          a.id === 'seed-' + cleanTarget
+        );
         if (art) {
           content = injectOGMetadata(content, art, host, protocol);
         }

@@ -1,12 +1,27 @@
 // Enable progressive enhancement animations
 document.body.classList.add('js-enabled');
 
+// Helper: Generate URL-safe slug from text
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
+
 // ==========================================
 // Initial Seed Data (Articles)
 // ==========================================
 const DEFAULT_ARTICLES = [
   {
     id: 'seed-1',
+    slug: 'exhilarating-magic-of-stock-markets',
     title: 'The Psychology of Market Volatility',
     seoTitle: 'The Psychology of Market Volatility | Dr. Anju Bathla Arora',
     socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
@@ -27,6 +42,7 @@ To bridge this gap, investors must develop self-regulation and structural discip
   },
   {
     id: 'seed-2',
+    slug: 'agilent-the-fast-and-focused',
     title: 'Defining Agility in Modern Workspaces',
     seoTitle: 'Defining Agility in Modern Workspaces | Dr. Anju Bathla Arora',
     socialShareTitle: 'Defining Agility in Modern Workspaces',
@@ -47,6 +63,7 @@ Leaders must learn to optimize emotions within their teams. High emotional intel
   },
   {
     id: 'seed-3',
+    slug: 'rekindled-life',
     title: 'Rekindling Purpose in Professional Life',
     seoTitle: 'Rekindling Purpose in Professional Life | Dr. Anju Bathla Arora',
     socialShareTitle: 'Rekindling Purpose in Professional Life',
@@ -338,17 +355,24 @@ function getArticleExcerpt(article) {
   return truncated + '...';
 }
 
-// Helper: Generate canonical article URL on this website only
-function getArticleCanonicalUrl(articleId) {
+// Helper: Generate canonical article permanent URL (/articles/{article-slug}) on this website only
+function getArticleCanonicalUrl(article) {
   const origin = window.location.origin;
+  const slug = typeof article === 'object' ? (article.slug || slugify(article.title) || article.id) : (article || '');
   let path = window.location.pathname;
   if (path.endsWith('index.html')) {
     path = path.substring(0, path.length - 'index.html'.length);
   }
+  if (path.includes('/articles/')) {
+    path = path.substring(0, path.indexOf('/articles/')) + '/';
+  }
+  if (path.includes('/article/')) {
+    path = path.substring(0, path.indexOf('/article/')) + '/';
+  }
   if (!path.endsWith('/')) {
     path += '/';
   }
-  return `${origin}${path}?article=${articleId}`;
+  return `${origin}${path}articles/${slug}`;
 }
 
 // Dynamically update document title and head meta tags (OG & Twitter)
@@ -356,7 +380,7 @@ function updateDocumentMetaTags(article) {
   const title = article.socialShareTitle || article.seoTitle || article.title;
   const fullTitle = `${title} | Dr. Anju Bathla Arora`;
   const description = getArticleExcerpt(article);
-  const canonicalUrl = getArticleCanonicalUrl(article.id);
+  const canonicalUrl = getArticleCanonicalUrl(article);
   
   let imageUrl = article.socialShareImage || article.image || 'assets/images/photo.jpeg';
   if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('data:')) {
@@ -405,7 +429,7 @@ function updateDocumentMetaTags(article) {
 
 // Setup social sharing
 function setupShareButtons(article) {
-  const shareUrl = getArticleCanonicalUrl(article.id);
+  const shareUrl = getArticleCanonicalUrl(article);
   const excerpt = getArticleExcerpt(article);
   const title = article.socialShareTitle || article.title;
 
@@ -1122,23 +1146,35 @@ function startTrackingSession() {
   window.addEventListener('beforeunload', updateCurrentPageViewDuration);
 }
 
-// Deep linking router for shared article URLs
+// Deep linking router for shared article URLs (/articles/{slug})
 function checkInitialArticleRoute() {
   const urlParams = new URLSearchParams(window.location.search);
-  let articleId = urlParams.get('article') || urlParams.get('id');
+  let targetSlug = urlParams.get('article') || urlParams.get('id');
+  const pathname = window.location.pathname;
 
-  if (!articleId && window.location.hash.startsWith('#article/')) {
-    articleId = window.location.hash.replace('#article/', '');
+  if (!targetSlug && pathname.includes('/articles/')) {
+    const parts = pathname.split('/articles/');
+    if (parts[1]) {
+      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
+    }
+  } else if (!targetSlug && pathname.includes('/article/')) {
+    const parts = pathname.split('/article/');
+    if (parts[1]) {
+      targetSlug = parts[1].replace(/\.html$/, '').replace(/\/$/, '');
+    }
+  } else if (!targetSlug && window.location.hash.startsWith('#article/')) {
+    targetSlug = window.location.hash.replace('#article/', '');
   }
 
-  if (!articleId && window.location.pathname.includes('/article/')) {
-    const parts = window.location.pathname.split('/article/');
-    if (parts[1]) articleId = parts[1].replace(/\.html$/, '');
-  }
-
-  if (articleId) {
+  if (targetSlug) {
     const published = typeof getPublishedArticles === 'function' ? getPublishedArticles() : DEFAULT_ARTICLES;
-    const art = published.find(a => a.id === articleId || a.id === 'seed-' + articleId || a.id.toLowerCase() === articleId.toLowerCase());
+    const cleanTarget = targetSlug.toLowerCase().trim();
+    const art = published.find(a => 
+      (a.slug && a.slug.toLowerCase() === cleanTarget) ||
+      (a.title && slugify(a.title) === cleanTarget) ||
+      a.id === cleanTarget ||
+      a.id === 'seed-' + cleanTarget
+    );
     if (art && typeof openArticleModal === 'function') {
       openArticleModal(art);
     }

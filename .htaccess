@@ -5,6 +5,13 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# Rewrite /articles/:slug to /articles/:slug.html if exists
+RewriteCond %{DOCUMENT_ROOT}/articles/$1.html -f
+RewriteRule ^articles/(.+)$ articles/$1.html [L]
+
+# Fallback /articles/:slug to index.html with article query parameter
+RewriteRule ^articles/(.+)$ index.html?article=$1 [L,QSA]
+
 # Otherwise, if the requested path with ".html" appended is a valid file, serve it.
 RewriteCond %{DOCUMENT_ROOT}/$1.html -f
 RewriteRule ^([^/]+)/?$ $1.html [L]

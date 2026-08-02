@@ -401,12 +401,27 @@ function deleteArticle(id) {
   refreshUI();
 }
 
+// Helper: Generate URL-safe slug from text
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
+
 // Open Editor Modal (Create / Edit)
 function openEditorModal(id = null) {
   const modal = document.getElementById('editor-modal');
   const modalTitle = document.getElementById('editor-modal-title');
   const idInput = document.getElementById('editor-article-id');
   const titleInput = document.getElementById('editor-title');
+  const slugInput = document.getElementById('editor-slug');
   const categorySelect = document.getElementById('editor-category');
   const dateInput = document.getElementById('editor-date');
   const readTimeInput = document.getElementById('editor-readtime');
@@ -424,6 +439,7 @@ function openEditorModal(id = null) {
   // Reset inputs
   idInput.value = '';
   titleInput.value = '';
+  if (slugInput) slugInput.value = '';
   categorySelect.value = 'Emotions';
   if (seoTitleInput) seoTitleInput.value = '';
   if (socialTitleInput) socialTitleInput.value = '';
@@ -444,6 +460,15 @@ function openEditorModal(id = null) {
   previewContainer.style.display = 'none';
   richEditor.innerHTML = '';
 
+  // Auto-generate slug when title changes in Create mode
+  if (titleInput && slugInput) {
+    titleInput.oninput = () => {
+      if (!idInput.value) {
+        slugInput.value = slugify(titleInput.value);
+      }
+    };
+  }
+
   if (id) {
     // Edit mode
     const db = getArticles();
@@ -452,6 +477,7 @@ function openEditorModal(id = null) {
       modalTitle.textContent = 'Edit Article';
       idInput.value = art.id;
       titleInput.value = art.title || '';
+      if (slugInput) slugInput.value = art.slug || slugify(art.title || '');
       categorySelect.value = art.category || 'Emotions';
       if (seoTitleInput) seoTitleInput.value = art.seoTitle || '';
       if (socialTitleInput) socialTitleInput.value = art.socialShareTitle || '';
@@ -514,6 +540,7 @@ function closeEditorModal() {
 function saveEditor(status = 'published') {
   const idInput = document.getElementById('editor-article-id').value;
   const titleVal = document.getElementById('editor-title').value.trim();
+  const rawSlugVal = (document.getElementById('editor-slug')?.value || '').trim();
   const categoryVal = document.getElementById('editor-category').value;
   const rawDate = document.getElementById('editor-date').value;
   const readTimeVal = document.getElementById('editor-readtime').value.trim();
@@ -530,6 +557,8 @@ function saveEditor(status = 'published') {
     alert('Please fill out the article title and content.');
     return;
   }
+
+  const generatedSlug = slugify(rawSlugVal || titleVal || 'article-' + Date.now());
 
   // Format Date (Convert datetime-local ISO to "Month DD, YYYY") and extract schedule timestamp
   let formattedDate = 'Recent';
@@ -582,6 +611,8 @@ function saveEditor(status = 'published') {
         return {
           ...art,
           title: titleVal,
+          slug: generatedSlug,
+          url: '/articles/' + generatedSlug,
           seoTitle: seoTitleVal,
           socialShareTitle: socialTitleVal,
           socialShareDescription: socialDescVal,
@@ -603,6 +634,8 @@ function saveEditor(status = 'published') {
     const newArt = {
       id: 'user-' + Date.now(),
       title: titleVal,
+      slug: generatedSlug,
+      url: '/articles/' + generatedSlug,
       seoTitle: seoTitleVal,
       socialShareTitle: socialTitleVal,
       socialShareDescription: socialDescVal,

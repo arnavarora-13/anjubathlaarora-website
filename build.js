@@ -94,6 +94,7 @@ try {
       articlesList = [
         {
           id: 'seed-1',
+          slug: 'exhilarating-magic-of-stock-markets',
           title: 'The Psychology of Market Volatility',
           socialShareTitle: 'How Emotional Intelligence Shapes Financial Resilience',
           socialShareDescription: 'Discover how emotional intelligence helps investors make better decisions, overcome market anxiety, and create long-term financial success.',
@@ -102,6 +103,7 @@ try {
         },
         {
           id: 'seed-2',
+          slug: 'agilent-the-fast-and-focused',
           title: 'Defining Agility in Modern Workspaces',
           socialShareTitle: 'Defining Agility in Modern Workspaces',
           socialShareDescription: 'Explore the core mechanisms of emotional and organizational agility needed to navigate modern hybrid work environments effectively.',
@@ -110,6 +112,7 @@ try {
         },
         {
           id: 'seed-3',
+          slug: 'rekindled-life',
           title: 'Rekindling Purpose in Professional Life',
           socialShareTitle: 'Rekindling Purpose in Professional Life',
           socialShareDescription: 'A guide to finding meaningful work alignment, sustained resilience, and avoiding burnout through conscious reflection.',
@@ -119,27 +122,46 @@ try {
       ];
     }
 
+    const slugifyBuild = (txt) => {
+      if (!txt) return '';
+      return txt.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+    };
+
+    const articlesPublicDir = path.join('public', 'articles');
     const articlePublicDir = path.join('public', 'article');
+    fs.mkdirSync(articlesPublicDir, { recursive: true });
     fs.mkdirSync(articlePublicDir, { recursive: true });
 
     articlesList.forEach(art => {
+      const slug = art.slug || slugifyBuild(art.title) || art.id;
       const title = art.socialShareTitle || art.seoTitle || art.title;
       const cleanText = (art.socialShareDescription || (art.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()).substring(0, 180);
       const img = art.socialShareImage || art.image || 'assets/images/photo.jpeg';
+      const canonicalUrl = `/articles/${slug}`;
 
       let artHtml = indexHtmlContent
         .replace(/<title>.*?<\/title>/i, `<title>${title} | Dr. Anju Bathla Arora</title>`)
         .replace(/<meta property="og:title".*?>/i, `<meta property="og:title" content="${title}">`)
         .replace(/<meta property="og:description".*?>/i, `<meta property="og:description" content="${cleanText}">`)
         .replace(/<meta property="og:image".*?>/i, `<meta property="og:image" content="${img}">`)
-        .replace(/<meta property="og:url".*?>/i, `<meta property="og:url" content="?article=${art.id}">`)
+        .replace(/<meta property="og:url".*?>/i, `<meta property="og:url" content="${canonicalUrl}">`)
         .replace(/<meta name="twitter:title".*?>/i, `<meta name="twitter:title" content="${title}">`)
         .replace(/<meta name="twitter:description".*?>/i, `<meta name="twitter:description" content="${cleanText}">`)
-        .replace(/<meta name="twitter:image".*?>/i, `<meta name="twitter:image" content="${img}">`);
+        .replace(/<meta name="twitter:image".*?>/i, `<meta name="twitter:image" content="${img}">`)
+        .replace(/<link rel="canonical".*?>/i, `<link rel="canonical" href="${canonicalUrl}">`);
 
+      // Write /articles/{slug}.html
+      fs.writeFileSync(path.join(articlesPublicDir, `${slug}.html`), artHtml, 'utf8');
+
+      // Write /articles/{slug}/index.html for nested directory routing
+      const subDir = path.join(articlesPublicDir, slug);
+      fs.mkdirSync(subDir, { recursive: true });
+      fs.writeFileSync(path.join(subDir, 'index.html'), artHtml, 'utf8');
+
+      // Write legacy /article/{id}.html
       fs.writeFileSync(path.join(articlePublicDir, `${art.id}.html`), artHtml, 'utf8');
     });
-    console.log(`Pre-rendered ${articlesList.length} static article fallback HTML files in public/article/`);
+    console.log(`Pre-rendered ${articlesList.length} static article fallback HTML files in public/articles/`);
   }
 
   console.log('Build completed successfully!');
